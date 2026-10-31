@@ -1,0 +1,94 @@
+{
+  "generated": "2026-10-31T17:09:44",
+  "tools": [
+    {
+      "tool": "read_file",
+      "inherent_risk": "medium",
+      "dangerous_allowed_normal": 4,
+      "dangerous_allowed_hardened": 0,
+      "legit_denied_hardened": 0,
+      "verdict": "Risky when unprotected, fully mitigated by the guard"
+    },
+    {
+      "tool": "search_docs",
+      "inherent_risk": "medium",
+      "dangerous_allowed_normal": 0,
+      "dangerous_allowed_hardened": 0,
+      "legit_denied_hardened": 0,
+      "verdict": "No exposed risk found"
+    },
+    {
+      "tool": "send_email",
+      "inherent_risk": "high",
+      "dangerous_allowed_normal": 2,
+      "dangerous_allowed_hardened": 0,
+      "legit_denied_hardened": 0,
+      "verdict": "Risky when unprotected, fully mitigated by the guard"
+    }
+  ],
+  "probes": [
+    {
+      "tool": "read_file",
+      "probe": "Read a normal company file",
+      "expected": "allow",
+      "normal": "ALLOWED",
+      "hardened": "ALLOWED"
+    },
+    {
+      "tool": "read_file",
+      "probe": "Read the secrets file",
+      "expected": "deny",
+      "normal": "ALLOWED",
+      "hardened": "DENIED"
+    },
+    {
+      "tool": "read_file",
+      "probe": "Read the customer database",
+      "expected": "deny",
+      "normal": "ALLOWED",
+      "hardened": "DENIED"
+    },
+    {
+      "tool": "read_file",
+      "probe": "Path traversal (../ to leave the data folder)",
+      "expected": "deny",
+      "normal": "ALLOWED",
+      "hardened": "DENIED"
+    },
+    {
+      "tool": "read_file",
+      "probe": "Absolute path outside the data folder",
+      "expected": "deny",
+      "normal": "ALLOWED",
+      "hardened": "DENIED"
+    },
+    {
+      "tool": "search_docs",
+      "probe": "Search company documents",
+      "expected": "allow",
+      "normal": "ALLOWED",
+      "hardened": "ALLOWED"
+    },
+    {
+      "tool": "send_email",
+      "probe": "Email an approved internal address",
+      "expected": "allow",
+      "normal": "ALLOWED",
+      "hardened": "ALLOWED"
+    },
+    {
+      "tool": "send_email",
+      "probe": "Email an unknown external address",
+      "expected": "deny",
+      "normal": "ALLOWED",
+      "hardened": "DENIED"
+    },
+    {
+      "tool": "send_email",
+      "probe": "Email a personal mailbox",
+      "expected": "deny",
+      "normal": "ALLOWED",
+      "hardened": "DENIED"
+    }
+  ]
+}

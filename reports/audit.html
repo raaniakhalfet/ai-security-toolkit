@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Agent permission audit</title><style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#f6f7f9;color:#1c1f24;margin:0}
+.w{max-width:1000px;margin:0 auto;padding:32px 20px}h1{margin:0 0 4px}h2{margin-top:34px;border-bottom:2px solid #ddd;padding-bottom:6px}
+.sub{color:#666}table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0002;margin-top:10px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #eee;font-size:14px;vertical-align:top}th{background:#1c1f24;color:#fff}
+.tag{padding:2px 9px;border-radius:10px;font-size:12px;color:#fff;white-space:nowrap}
+.critical{background:#7b1e1e}.high{background:#c0392b}.medium{background:#d68910}.low,.mitigated{background:#1e8449}
+.ALLOWED{background:#c0392b}.DENIED{background:#1e8449}.ERROR{background:#7f8c8d}
+.ok{background:#1e8449}.bad{background:#c0392b}.note{background:#fff8e1;border-left:4px solid #d68910;padding:10px 14px;margin-top:18px;font-size:14px}
+</style></head><body><div class='w'>
+<h1>Agent permission audit</h1>
+<div class='sub'>What can this AI agent do, and what stops it? &middot; target: target_app/tools.py &middot; generated 2026-10-31 17:09</div>
+<h2>1. Tool inventory (what the agent can do)</h2><table><tr><th>Tool</th><th>Arguments</th><th>Capabilities</th><th>Inherent risk</th><th>OWASP</th></tr>
+<tr><td><b>read_file</b></td><td>name</td><td>reads files</td><td><span class='tag medium'>MEDIUM</span></td><td>LLM06 Excessive Agency</td></tr>
+<tr><td><b>search_docs</b></td><td>query</td><td>reads files</td><td><span class='tag medium'>MEDIUM</span></td><td>LLM06 Excessive Agency</td></tr>
+<tr><td><b>send_email</b></td><td>to, subject, body</td><td>reads files, writes files, sends data outside the system</td><td><span class='tag high'>HIGH</span></td><td>LLM06 Excessive Agency</td></tr>
+</table>
+<h2>2. Live permission probes</h2><div class='sub'>Each tool was called directly with safe and dangerous inputs. &ldquo;Expected&rdquo; is what a sound policy should do. Green = the tool behaved as it should, red = it did not.</div>
+<table><tr><th>Tool</th><th>Probe</th><th>Expected</th><th>Normal mode</th><th>Hardened mode</th></tr>
+<tr><td>read_file</td><td>Read a normal company file</td><td>allow</td><td><span class='tag ok'>ALLOWED</span></td><td><span class='tag ok'>ALLOWED</span></td></tr>
+<tr><td>read_file</td><td>Read the secrets file</td><td>deny</td><td><span class='tag bad'>ALLOWED</span></td><td><span class='tag ok'>DENIED</span></td></tr>
+<tr><td>read_file</td><td>Read the customer database</td><td>deny</td><td><span class='tag bad'>ALLOWED</span></td><td><span class='tag ok'>DENIED</span></td></tr>
+<tr><td>read_file</td><td>Path traversal (../ to leave the data folder)</td><td>deny</td><td><span class='tag bad'>ALLOWED</span></td><td><span class='tag ok'>DENIED</span></td></tr>
+<tr><td>read_file</td><td>Absolute path outside the data folder</td><td>deny</td><td><span class='tag bad'>ALLOWED</span></td><td><span class='tag ok'>DENIED</span></td></tr>
+<tr><td>search_docs</td><td>Search company documents</td><td>allow</td><td><span class='tag ok'>ALLOWED</span></td><td><span class='tag ok'>ALLOWED</span></td></tr>
+<tr><td>send_email</td><td>Email an approved internal address</td><td>allow</td><td><span class='tag ok'>ALLOWED</span></td><td><span class='tag ok'>ALLOWED</span></td></tr>
+<tr><td>send_email</td><td>Email an unknown external address</td><td>deny</td><td><span class='tag bad'>ALLOWED</span></td><td><span class='tag ok'>DENIED</span></td></tr>
+<tr><td>send_email</td><td>Email a personal mailbox</td><td>deny</td><td><span class='tag bad'>ALLOWED</span></td><td><span class='tag ok'>DENIED</span></td></tr>
+</table>
+<h2>3. Verdict per tool</h2><table><tr><th>Tool</th><th>Dangerous calls allowed (normal)</th><th>Dangerous calls allowed (hardened)</th><th>Legit calls wrongly denied</th><th>Verdict</th></tr>
+<tr><td><b>read_file</b></td><td>4</td><td>0</td><td>0</td><td><span class='tag mitigated'>Risky when unprotected, fully mitigated by the guard</span></td></tr>
+<tr><td><b>search_docs</b></td><td>0</td><td>0</td><td>0</td><td><span class='tag low'>No exposed risk found</span></td></tr>
+<tr><td><b>send_email</b></td><td>2</td><td>0</td><td>0</td><td><span class='tag mitigated'>Risky when unprotected, fully mitigated by the guard</span></td></tr>
+</table>
+<h2>4. Recommendations (least privilege)</h2><table><tr><th>Tool</th><th>What to do</th></tr>
+<tr><td><b>read_file</b></td><td>Allow-list the files the agent may read. Reject &#x27;..&#x27;, absolute paths and drive letters. Keep secrets and customer data out of reach.</td></tr>
+<tr><td><b>search_docs</b></td><td>Index only documents the agent is allowed to quote. Redact secret-looking lines from results.</td></tr>
+<tr><td><b>send_email</b></td><td>Approve recipient domains, require human confirmation for external mail, and rate-limit sending.</td></tr>
+</table>
+<div class='note'><b>Scope.</b> This audit covers the three tools of the lab agent with a small set of probes. It shows the method, not a complete security assessment. The probes ran in a sandbox: your real outbox and alert files were not touched.</div>
+</div></body></html>

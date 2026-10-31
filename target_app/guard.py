@@ -22,8 +22,8 @@ EMAIL = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
 
 def _alert(rule, detail):
     ALERTS.parent.mkdir(exist_ok=True)
-    event = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "layer": "agent_guard", "rule": rule,
-             "action": "denied", "detail": str(detail)[:200]}
+    event = {"ai_source": "ai-security-toolkit", "ai_ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+             "ai_layer": "agent_guard", "ai_rule": rule, "ai_action": "denied", "ai_detail": str(detail)[:200]}
     with ALERTS.open("a", encoding="utf-8") as f:
         f.write(json.dumps(event) + "\n")
 
