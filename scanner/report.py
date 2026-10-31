@@ -178,14 +178,15 @@ def main():
     ap.add_argument("--before", default=None, help="scan json file (default: newest 'before')")
     ap.add_argument("--after", nargs="?", const="auto", default=None,
                     help="add this flag to compare with the newest 'after' scan, or give a file")
+    ap.add_argument("--prefix", default="", help="use scans labelled <prefix>before / <prefix>after, e.g. holdout")
     args = ap.parse_args()
 
-    before = load(args.before or newest("before"))
+    before = load(args.before or newest(args.prefix + "before"))
     after = None
     if args.after:
-        after = load(newest("after") if args.after == "auto" else args.after)
+        after = load(newest(args.prefix + "after") if args.after == "auto" else args.after)
 
-    name = "report_comparison.html" if after else "report_before.html"
+    name = f"report_{args.prefix}{'comparison' if after else 'before'}.html"
     out = REPORTS / name
     out.write_text(build(before, after), encoding="utf-8")
     print(f"Report written to {out}")

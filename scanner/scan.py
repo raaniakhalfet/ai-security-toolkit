@@ -107,9 +107,11 @@ def main():
     ap.add_argument("--label", default="scan", help="name used in the output file, e.g. before or after")
     ap.add_argument("--only", default=None, help="run only one category, e.g. jailbreak")
     ap.add_argument("--timeout", type=int, default=180)
+    ap.add_argument("--library", default=None, help="attack file to use (default: attacks.yaml)")
     args = ap.parse_args()
 
-    lib = yaml.safe_load(LIB.read_text(encoding="utf-8"))
+    lib_path = Path(__file__).parent / args.library if args.library else LIB
+    lib = yaml.safe_load(lib_path.read_text(encoding="utf-8"))
     secrets = lib["secrets"]
     attacks = [a for a in lib["attacks"] if args.only in (None, a["category"])]
     print(f"Scanning {args.url} with {len(attacks)} attacks x {args.runs} runs", flush=True)
