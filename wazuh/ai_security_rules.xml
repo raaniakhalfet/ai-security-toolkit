@@ -1,0 +1,69 @@
+<!-- AI Security Toolkit: custom Wazuh detection rules (IDs 100100-100199) -->
+<group name="ai_security,">
+
+  <!-- Base rule: any event written by the toolkit (firewall, tool audit, agent guard) -->
+  <rule id="100100" level="3">
+    <decoded_as>json</decoded_as>
+    <field name="ai_source">ai-security-toolkit</field>
+    <description>AI Security Toolkit: event received</description>
+  </rule>
+
+  <!-- Firewall input filter: attacks blocked before they reach the agent -->
+  <rule id="100110" level="8">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">input</field>
+    <field name="ai_rule">prompt_leak|override|jailbreak</field>
+    <description>AI attack blocked: prompt injection or jailbreak attempt ($(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
+  <rule id="100111" level="9">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">input</field>
+    <field name="ai_rule">sensitive_file|path_traversal</field>
+    <description>AI attack blocked: attempt to reach sensitive files ($(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
+  <rule id="100112" level="9">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">input</field>
+    <field name="ai_rule">email_external_recipient|bulk_data</field>
+    <description>AI attack blocked: possible data exfiltration request ($(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
+  <!-- Firewall output filter: the agent tried to leak a secret and it was redacted -->
+  <rule id="100120" level="10">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">output</field>
+    <field name="ai_action">redacted</field>
+    <description>AI agent tried to leak a secret in its reply (redacted: $(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
+  <!-- Agent guard: a dangerous tool call was refused inside the agent -->
+  <rule id="100130" level="10">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">agent_guard</field>
+    <field name="ai_action">denied</field>
+    <description>AI agent tool call denied by guard ($(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
+  <!-- Firewall tool audit: a dangerous tool call already happened (nothing stopped it) -->
+  <rule id="100131" level="12">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">tool</field>
+    <field name="ai_action">alert</field>
+    <description>AI agent executed a dangerous tool call ($(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
+  <!-- Correlation: many attack events in a short time = automated attack -->
+  <rule id="100140" level="13" frequency="5" timeframe="60">
+    <if_matched_group>ai_attack</if_matched_group>
+    <description>AI agent under automated attack: 5 or more attack events within 60 seconds</description>
+  </rule>
+
+</group>
