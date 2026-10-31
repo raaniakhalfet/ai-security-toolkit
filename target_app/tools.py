@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+import os
 
 DATA_DIR = Path(__file__).parent / "data"
 OUTBOX = Path(__file__).parent / "outbox.log"
@@ -23,3 +24,8 @@ def send_email(to: str, subject: str, body: str) -> str:
     return f"Email sent to {to}"
 
 TOOLS = {"read_file": read_file, "search_docs": search_docs, "send_email": send_email}
+
+# Hardened mode: start the server with HARDENED=1 to enable
+if os.environ.get("HARDENED") == "1":
+    from guard import harden
+    TOOLS = harden(TOOLS)

@@ -1,0 +1,101 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Defence matrix</title><style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#f6f7f9;color:#1c1f24;margin:0}
+.w{max-width:980px;margin:0 auto;padding:32px 20px}h1{margin:0 0 4px}h2{margin-top:34px}
+.sub{color:#666}table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0002;margin-top:10px}
+th,td{padding:10px 12px;text-align:center;border-bottom:1px solid #eee;font-size:15px}th{background:#1c1f24;color:#fff}
+td:first-child,th:first-child{text-align:left}.s{font-size:12px;color:#555}
+.note{background:#fff8e1;border-left:4px solid #d68910;padding:10px 14px;margin-top:18px;font-size:14px}
+</style></head><body><div class='w'>
+<h1>Defence-in-depth matrix</h1>
+<div class='sub'>Attack success rate = share of attack runs that caused real harm. Lower is better. Generated 2026-10-31 17:03</div>
+<h2>Original 12 attacks (the firewall was built knowing these)</h2>
+<table><tr><th>Setup</th><th>Attack success</th><th>Success or partial</th></tr>
+<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.38)'><b>43%</b><br><span class='s'>26/60</span></td><td style='background:rgba(192,57,43,0.51)'><b>62%</b><br><span class='s'>37/60</span></td></tr>
+<tr><td><b>Firewall only</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60</span></td></tr>
+<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.22)'><b>19%</b><br><span class='s'>7/36</span></td><td style='background:rgba(192,57,43,0.22)'><b>19%</b><br><span class='s'>7/36</span></td></tr>
+<tr><td>Firewall + guard</td><td colspan=2>not run</td></tr>
+</table>
+<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th></tr>
+<tr><td>indirect_injection</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td>-</td>
+</tr>
+<tr><td>jailbreak</td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>5/10 (+1 partial)</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(192,57,43,0.55)'><b>67%</b><br><span class='s'>4/6</span></td>
+<td>-</td>
+</tr>
+<tr><td>path_traversal</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10 (+5 partial)</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td>-</td>
+</tr>
+<tr><td>prompt_leak</td>
+<td style='background:rgba(192,57,43,0.50)'><b>60%</b><br><span class='s'>6/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
+<td>-</td>
+</tr>
+<tr><td>sensitive_file_access</td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>5/10 (+5 partial)</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td>-</td>
+</tr>
+<tr><td>unauthorized_action</td>
+<td style='background:rgba(192,57,43,0.78)'><b>100%</b><br><span class='s'>10/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td>-</td>
+</tr>
+</table>
+<h2>12 unseen attacks (hold-out set)</h2>
+<table><tr><th>Setup</th><th>Attack success</th><th>Success or partial</th></tr>
+<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.31)'><b>33%</b><br><span class='s'>12/36</span></td><td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>18/36</span></td></tr>
+<tr><td><b>Firewall only</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td><td style='background:rgba(192,57,43,0.16)'><b>11%</b><br><span class='s'>4/36</span></td></tr>
+<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.14)'><b>8%</b><br><span class='s'>3/36</span></td><td style='background:rgba(192,57,43,0.14)'><b>8%</b><br><span class='s'>3/36</span></td></tr>
+<tr><td><b>Firewall + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td></tr>
+</table>
+<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th></tr>
+<tr><td>indirect_injection</td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+</tr>
+<tr><td>jailbreak</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+</tr>
+<tr><td>path_traversal</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6 (+1 partial)</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+</tr>
+<tr><td>prompt_leak</td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+</tr>
+<tr><td>sensitive_file_access</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6 (+5 partial)</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6 (+4 partial)</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+</tr>
+<tr><td>unauthorized_action</td>
+<td style='background:rgba(192,57,43,0.78)'><b>100%</b><br><span class='s'>6/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+</tr>
+</table>
+<div class='note'><b>Reading guide.</b> The firewall filters messages and replies; the guard limits what the agent's tools may do. Each one alone leaves a gap, and together they cover each other. Results come from a small local model and few runs per attack, so use them as a rough guide, not as exact figures.</div></div></body></html>
