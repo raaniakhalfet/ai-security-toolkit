@@ -6,15 +6,21 @@ Uses the newest scan for each label. Missing scans show as "not run".
 """
 import html
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from stats import fmt_ci  # noqa: E402
+
 REPORTS = Path(__file__).parent.parent / "reports"
 
-SETUPS = [("none", "No defence"), ("firewall", "Firewall only"), ("guard", "Guard only"), ("both", "Firewall + guard")]
+SETUPS = [("none", "No defence"), ("firewall", "Firewall only"), ("guard", "Guard only"), ("both", "Firewall + guard"),
+          ("rootfix", "Secret removed from prompt + guard")]
 SETS = [
-    ("Original 12 attacks (the firewall was built knowing these)", {"none": "before", "firewall": "after", "guard": "guard", "both": "both"}),
-    ("12 unseen attacks (hold-out set)", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth"}),
+    ("Original 12 attacks (the firewall was built knowing these)", {"none": "before", "firewall": "after", "guard": "guard", "both": "both", "rootfix": "rootfix"}),
+    ("12 unseen attacks (hold-out set 1)", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth", "rootfix": "holdoutrootfix"}),
+    ("18 more unseen attacks (hold-out set 2: base64, Arabic, fiction, look-alike domains, new poisoned files)", {"none": "holdout2before", "firewall": "holdout2after", "guard": "holdout2guard", "both": "holdout2both", "rootfix": "holdout2rootfix"}),
 ]
 
 
@@ -41,7 +47,8 @@ def cell(s, p, n):
     if n == 0:
         return "<td>-</td>"
     pct = 100 * s / n
-    return f"<td style='background:{color(pct)}'><b>{pct:.0f}%</b><br><span class='s'>{s}/{n}" + (f" (+{p} partial)" if p else "") + "</span></td>"
+    return (f"<td style='background:{color(pct)}'><b>{pct:.0f}%</b><br><span class='s'>{s}/{n}"
+            + (f" (+{p} partial)" if p else "") + f"<br>95% interval {fmt_ci(s, n)}</span></td>")
 
 
 def build():
@@ -80,8 +87,9 @@ td:first-child,th:first-child{text-align:left}.s{font-size:12px;color:#555}
             h.append("</tr>")
         h.append("</table>")
     h.append("<div class='note'><b>Reading guide.</b> The firewall filters messages and replies; the guard limits what the agent's tools may do. "
-             "Each one alone leaves a gap, and together they cover each other. Results come from a small local model and few runs per attack, "
-             "so use them as a rough guide, not as exact figures.</div></div></body></html>")
+             "Each one alone leaves a gap, and together they cover each other. <b>95% interval</b> = the range the true rate probably lies in "
+             "(Wilson score). With few runs it is wide: 0 out of 36 only shows the true rate is probably below about 10%, not that it is zero. "
+             "If two intervals overlap, the difference may be chance. Results come from a small local model, so use them as a rough guide.</div></div></body></html>")
     return "\n".join(h)
 
 

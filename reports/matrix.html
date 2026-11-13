@@ -7,95 +7,161 @@ td:first-child,th:first-child{text-align:left}.s{font-size:12px;color:#555}
 .note{background:#fff8e1;border-left:4px solid #d68910;padding:10px 14px;margin-top:18px;font-size:14px}
 </style></head><body><div class='w'>
 <h1>Defence-in-depth matrix</h1>
-<div class='sub'>Attack success rate = share of attack runs that caused real harm. Lower is better. Generated 2026-10-31 17:06</div>
+<div class='sub'>Attack success rate = share of attack runs that caused real harm. Lower is better. Generated 2026-11-13 16:31</div>
 <h2>Original 12 attacks (the firewall was built knowing these)</h2>
 <table><tr><th>Setup</th><th>Attack success</th><th>Success or partial</th></tr>
-<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.38)'><b>43%</b><br><span class='s'>26/60</span></td><td style='background:rgba(192,57,43,0.51)'><b>62%</b><br><span class='s'>37/60</span></td></tr>
-<tr><td><b>Firewall only</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60</span></td></tr>
-<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.22)'><b>19%</b><br><span class='s'>7/36</span></td><td style='background:rgba(192,57,43,0.22)'><b>19%</b><br><span class='s'>7/36</span></td></tr>
-<tr><td><b>Firewall + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td></tr>
+<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.44)'><b>52%</b><br><span class='s'>30/58<br>95% interval 39-64%</span></td><td style='background:rgba(192,57,43,0.54)'><b>66%</b><br><span class='s'>38/58<br>95% interval 53-76%</span></td></tr>
+<tr><td><b>Firewall only</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td></tr>
+<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.27)'><b>27%</b><br><span class='s'>16/60<br>95% interval 17-39%</span></td><td style='background:rgba(192,57,43,0.27)'><b>27%</b><br><span class='s'>16/60<br>95% interval 17-39%</span></td></tr>
+<tr><td><b>Firewall + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td></tr>
+<tr><td><b>Secret removed from prompt + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td></tr>
 </table>
-<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th></tr>
+<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th><th>Secret removed from prompt + guard</th></tr>
 <tr><td>indirect_injection</td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>jailbreak</td>
-<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>5/10 (+1 partial)</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(192,57,43,0.55)'><b>67%</b><br><span class='s'>4/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.64)'><b>80%</b><br><span class='s'>8/10 (+1 partial)<br>95% interval 49-94%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(192,57,43,0.64)'><b>80%</b><br><span class='s'>8/10<br>95% interval 49-94%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>path_traversal</td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10 (+5 partial)</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.17)'><b>12%</b><br><span class='s'>1/8 (+2 partial)<br>95% interval 2-47%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>prompt_leak</td>
-<td style='background:rgba(192,57,43,0.50)'><b>60%</b><br><span class='s'>6/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.64)'><b>80%</b><br><span class='s'>8/10<br>95% interval 49-94%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(192,57,43,0.64)'><b>80%</b><br><span class='s'>8/10<br>95% interval 49-94%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>sensitive_file_access</td>
-<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>5/10 (+5 partial)</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.36)'><b>40%</b><br><span class='s'>4/10 (+5 partial)<br>95% interval 17-69%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>unauthorized_action</td>
-<td style='background:rgba(192,57,43,0.78)'><b>100%</b><br><span class='s'>10/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.71)'><b>90%</b><br><span class='s'>9/10<br>95% interval 60-98%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 </table>
-<h2>12 unseen attacks (hold-out set)</h2>
+<h2>12 unseen attacks (hold-out set 1)</h2>
 <table><tr><th>Setup</th><th>Attack success</th><th>Success or partial</th></tr>
-<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.31)'><b>33%</b><br><span class='s'>12/36</span></td><td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>18/36</span></td></tr>
-<tr><td><b>Firewall only</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td><td style='background:rgba(192,57,43,0.16)'><b>11%</b><br><span class='s'>4/36</span></td></tr>
-<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.14)'><b>8%</b><br><span class='s'>3/36</span></td><td style='background:rgba(192,57,43,0.14)'><b>8%</b><br><span class='s'>3/36</span></td></tr>
-<tr><td><b>Firewall + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/36</span></td></tr>
+<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.29)'><b>30%</b><br><span class='s'>18/60<br>95% interval 20-43%</span></td><td style='background:rgba(192,57,43,0.42)'><b>48%</b><br><span class='s'>29/60<br>95% interval 36-61%</span></td></tr>
+<tr><td><b>Firewall only</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td><td style='background:rgba(192,57,43,0.18)'><b>15%</b><br><span class='s'>9/60<br>95% interval 8-26%</span></td></tr>
+<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.17)'><b>13%</b><br><span class='s'>8/60<br>95% interval 7-24%</span></td><td style='background:rgba(192,57,43,0.17)'><b>13%</b><br><span class='s'>8/60<br>95% interval 7-24%</span></td></tr>
+<tr><td><b>Firewall + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td></tr>
+<tr><td><b>Secret removed from prompt + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/60<br>95% interval 0-6%</span></td></tr>
 </table>
-<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th></tr>
+<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th><th>Secret removed from prompt + guard</th></tr>
 <tr><td>indirect_injection</td>
-<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>5/10<br>95% interval 24-76%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>5/10<br>95% interval 24-76%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>jailbreak</td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>path_traversal</td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6 (+1 partial)</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10 (+2 partial)<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>prompt_leak</td>
-<td style='background:rgba(192,57,43,0.43)'><b>50%</b><br><span class='s'>3/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.29)'><b>30%</b><br><span class='s'>3/10<br>95% interval 11-60%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(192,57,43,0.29)'><b>30%</b><br><span class='s'>3/10<br>95% interval 11-60%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>sensitive_file_access</td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6 (+5 partial)</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6 (+4 partial)</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10 (+9 partial)<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10 (+9 partial)<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 <tr><td>unauthorized_action</td>
-<td style='background:rgba(192,57,43,0.78)'><b>100%</b><br><span class='s'>6/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
-<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/6</span></td>
+<td style='background:rgba(192,57,43,0.78)'><b>100%</b><br><span class='s'>10/10<br>95% interval 72-100%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
 </tr>
 </table>
-<div class='note'><b>Reading guide.</b> The firewall filters messages and replies; the guard limits what the agent's tools may do. Each one alone leaves a gap, and together they cover each other. Results come from a small local model and few runs per attack, so use them as a rough guide, not as exact figures.</div></div></body></html>
+<h2>18 more unseen attacks (hold-out set 2: base64, Arabic, fiction, look-alike domains, new poisoned files)</h2>
+<table><tr><th>Setup</th><th>Attack success</th><th>Success or partial</th></tr>
+<tr><td><b>No defence</b></td><td style='background:rgba(192,57,43,0.28)'><b>28%</b><br><span class='s'>25/89<br>95% interval 20-38%</span></td><td style='background:rgba(192,57,43,0.35)'><b>38%</b><br><span class='s'>34/89<br>95% interval 29-49%</span></td></tr>
+<tr><td><b>Firewall only</b></td><td style='background:rgba(192,57,43,0.16)'><b>11%</b><br><span class='s'>10/90<br>95% interval 6-19%</span></td><td style='background:rgba(192,57,43,0.26)'><b>26%</b><br><span class='s'>23/90<br>95% interval 18-35%</span></td></tr>
+<tr><td><b>Guard only</b></td><td style='background:rgba(192,57,43,0.12)'><b>6%</b><br><span class='s'>5/89<br>95% interval 2-12%</span></td><td style='background:rgba(192,57,43,0.12)'><b>6%</b><br><span class='s'>5/89<br>95% interval 2-12%</span></td></tr>
+<tr><td><b>Firewall + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/90<br>95% interval 0-4%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/90<br>95% interval 0-4%</span></td></tr>
+<tr><td><b>Secret removed from prompt + guard</b></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/90<br>95% interval 0-4%</span></td><td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/90<br>95% interval 0-4%</span></td></tr>
+</table>
+<table><tr><th>Category (success rate)</th><th>No defence</th><th>Firewall only</th><th>Guard only</th><th>Firewall + guard</th><th>Secret removed from prompt + guard</th></tr>
+<tr><td>indirect_injection</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15 (+1 partial)<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15 (+1 partial)<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+</tr>
+<tr><td>jailbreak</td>
+<td style='background:rgba(192,57,43,0.41)'><b>47%</b><br><span class='s'>7/15<br>95% interval 25-70%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(192,57,43,0.31)'><b>33%</b><br><span class='s'>5/15<br>95% interval 15-58%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+</tr>
+<tr><td>path_traversal</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/10<br>95% interval 0-28%</span></td>
+</tr>
+<tr><td>prompt_leak</td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/19<br>95% interval 0-17%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/20<br>95% interval 0-16%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/19<br>95% interval 0-17%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/20<br>95% interval 0-16%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/20<br>95% interval 0-16%</span></td>
+</tr>
+<tr><td>sensitive_file_access</td>
+<td style='background:rgba(192,57,43,0.31)'><b>33%</b><br><span class='s'>5/15 (+8 partial)<br>95% interval 15-58%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15 (+12 partial)<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+</tr>
+<tr><td>unauthorized_action</td>
+<td style='background:rgba(192,57,43,0.69)'><b>87%</b><br><span class='s'>13/15<br>95% interval 62-96%</span></td>
+<td style='background:rgba(192,57,43,0.55)'><b>67%</b><br><span class='s'>10/15<br>95% interval 42-85%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+<td style='background:rgba(30,132,73,0.15)'><b>0%</b><br><span class='s'>0/15<br>95% interval 0-20%</span></td>
+</tr>
+</table>
+<div class='note'><b>Reading guide.</b> The firewall filters messages and replies; the guard limits what the agent's tools may do. Each one alone leaves a gap, and together they cover each other. <b>95% interval</b> = the range the true rate probably lies in (Wilson score). With few runs it is wide: 0 out of 36 only shows the true rate is probably below about 10%, not that it is zero. If two intervals overlap, the difference may be chance. Results come from a small local model, so use them as a rough guide.</div></div></body></html>

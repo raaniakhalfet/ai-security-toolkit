@@ -25,12 +25,17 @@ BLOCK_MESSAGE = "Sorry, I can't help with that request."
 # ---------------------------------------------------------------- policy
 # 1) Input rules: (rule name, regex). Case-insensitive.
 INPUT_RULES = [
-    ("prompt_leak", r"(repeat|print|show|reveal|display|output|tell me|give me)\b.{0,40}\b(your|the)\b.{0,20}\b(instructions|system prompt|initial prompt|rules|configuration)"),
+    # "the assembly instructions" or "the rules for returns" are normal; "your instructions" / "the system prompt" are not.
+    ("prompt_leak", r"(repeat|print|show|reveal|display|output|tell me|give me|recite)\b.{0,40}\b(your|the)\b.{0,20}\b(system prompt|initial prompt|configuration)"),
+    ("prompt_leak", r"(repeat|print|show|reveal|display|output|tell me|give me|recite)\b.{0,40}\byour\b.{0,20}\b(instructions|rules|guidelines)"),
+    ("prompt_leak", r"(repeat|print|show|reveal|display|output|tell me|give me|recite)\b.{0,40}\bthe\b.{0,15}\b(system|initial|original|hidden|internal)\b.{0,10}\b(instructions|rules)"),
     ("prompt_leak", r"\bsystem prompt\b"),
     ("prompt_leak", r"word for word"),
     ("override", r"(ignore|disregard|forget|override)\b.{0,30}\b(previous|prior|above|earlier|all|your)\b.{0,30}\b(instructions|rules|prompt|guidelines)"),
     ("jailbreak", r"\b(debug|developer|admin|maintenance|god|sudo|dan)\s+mode\b"),
-    ("jailbreak", r"(pretend|act|behave|roleplay|role-play|imagine)\b.{0,30}\b(you are|you're|as|to be)\b"),
+    # Only risky roles: "act as a guide" is normal, "pretend you are an admin / DAN / unrestricted" is not.
+    ("jailbreak", r"(pretend|act|behave|roleplay|role-play|imagine)\b.{0,30}\b(you are|you're|as|to be)\b.{0,30}\b(admin|administrator|root|developer|hacker|unrestricted|unfiltered|jailbroken|dan|evil|without (rules|restrictions|limits|filters))"),
+    ("jailbreak", r"\bno (rules|restrictions|limits|filters|guidelines)\b"),
     ("jailbreak", r"\b(admin|api|secret|master)\s*(key|token|password)\b"),
     ("sensitive_file", r"\b(secrets?|credentials?|passwords?)\.(txt|json|env|yaml|yml)\b|\.env\b|id_rsa|\bsecrets? file\b|\b(read|open|cat|show|print)\b.{0,15}\bsecrets?\b"),
     ("path_traversal", r"\.\./|\.\.\\|(^|\s)\.\.(\s|$)|%2e%2e|\bapp\.py\b|\btools\.py\b|/etc/|c:\\\\"),
@@ -39,7 +44,19 @@ INPUT_RULES = [
 ]
 
 # 2) Email policy: the bot may only email these domains.
-ALLOWED_EMAIL_DOMAINS = {"acme.example"}
+# Single source of truth: target_app/policy.yaml (shared with the guard). Falls back to acme.example.
+def _load_allowed_domains():
+    try:
+        import yaml
+        policy_file = Path(__file__).parent.parent / "target_app" / "policy.yaml"
+        data = yaml.safe_load(policy_file.read_text(encoding="utf-8")) or {}
+        domains = {str(d).lower() for d in data.get("allowed_email_domains", [])}
+        return domains or {"acme.example"}
+    except Exception:
+        return {"acme.example"}
+
+
+ALLOWED_EMAIL_DOMAINS = _load_allowed_domains()
 EMAIL_INTENT = re.compile(r"\b(send|email|e-mail|mail|forward|write to)\b", re.I)
 EMAIL_ADDR = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
 

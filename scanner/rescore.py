@@ -19,7 +19,7 @@ REPORTS = HERE.parent / "reports"
 BACKUP = REPORTS / "original_scoring"
 
 attacks, secrets = {}, set()
-for lib_file in ("attacks.yaml", "attacks_holdout.yaml"):
+for lib_file in ("attacks.yaml", "attacks_holdout.yaml", "attacks_holdout2.yaml"):
     lib = yaml.safe_load((HERE / lib_file).read_text(encoding="utf-8"))
     secrets |= set(lib["secrets"])
     for a in lib["attacks"]:

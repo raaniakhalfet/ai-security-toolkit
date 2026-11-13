@@ -1,0 +1,17 @@
+# Tool policy: ONE place that says what the agent's tools may do.
+# Read by the guard (target_app/guard.py) and by the firewall (firewall/firewall.py).
+# Change a rule here, restart the servers, and both layers follow. No code to edit.
+
+# Files the agent may never read, even by exact name.
+blocked_files:
+  - secrets.txt
+  - customers.txt
+
+# send_email may only write to these domains.
+allowed_email_domains:
+  - acme.example
+
+# Tools that need a human to click Approve before they really run.
+# Leave empty for normal hardened mode. Start the agent with REQUIRE_APPROVAL=1 to turn on
+# approval for send_email without editing this file.
+require_approval: []

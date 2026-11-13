@@ -13,6 +13,7 @@ LOCAL LAB ONLY. The page only talks to localhost.
 """
 import json
 import os
+import sys
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -24,15 +25,20 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT / "target_app"))
+import approvals  # noqa: E402  (human approval queue shared with the agent guard)
+
 REPORTS = ROOT / "reports"
 ALERTS = ROOT / "firewall" / "alerts.jsonl"
 AGENT_URL = os.environ.get("AGENT_URL", "http://127.0.0.1:8000/chat")
 FIREWALL_URL = os.environ.get("FIREWALL_URL", "http://127.0.0.1:8001/chat")
 
-SETUPS = [("none", "No defence"), ("firewall", "Firewall only"), ("guard", "Guard only"), ("both", "Firewall + guard")]
+SETUPS = [("none", "No defence"), ("firewall", "Firewall only"), ("guard", "Guard only"), ("both", "Firewall + guard"),
+          ("rootfix", "Secret removed + guard")]
 SETS = [
-    ("Original 12 attacks", {"none": "before", "firewall": "after", "guard": "guard", "both": "both"}),
-    ("12 unseen attacks", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth"}),
+    ("Original 12 attacks", {"none": "before", "firewall": "after", "guard": "guard", "both": "both", "rootfix": "rootfix"}),
+    ("12 unseen attacks", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth", "rootfix": "holdoutrootfix"}),
+    ("18 more unseen attacks", {"none": "holdout2before", "firewall": "holdout2after", "guard": "holdout2guard", "both": "holdout2both", "rootfix": "holdout2rootfix"}),
 ]
 
 app = FastAPI(title="AI Security Toolkit Control Center")
@@ -44,6 +50,8 @@ def severity(ev):
     if layer == "tool":
         return "critical", "Dangerous tool call was executed"
     if layer == "agent_guard":
+        if action == "pending":
+            return "medium", "Risky action is waiting for human approval"
         return "high", "Tool call denied by the agent guard"
     if layer == "output":
         return "high", "Secret in the agent's reply was redacted"
@@ -176,6 +184,20 @@ def api_demo(body: Msg):
         return {"agent": a.result(), "firewall": f.result()}
 
 
+@app.get("/api/approvals")
+def api_approvals():
+    items = approvals.all_requests()
+    return {"pending": [i for i in items if i["status"] == "pending"], "history": items[-15:][::-1]}
+
+
+@app.post("/api/approvals/{rid}/{decision}")
+def api_decide(rid: int, decision: str):
+    if decision not in ("approve", "deny"):
+        return {"ok": False, "error": "decision must be approve or deny"}
+    item = approvals.decide(rid, decision == "approve")
+    return {"ok": bool(item), "item": item}
+
+
 @app.get("/api/status")
 def api_status():
     def up(url):
@@ -221,7 +243,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 10px;
 .mute{color:var(--mute);font-size:13px}h2{font-size:16px;margin:4px 0 10px}svg{width:100%;height:90px}
 </style></head><body>
 <header><h1>AI Security Control Center</h1><span class="chip" id="stAgent">agent :8000</span><span class="chip" id="stFw">firewall :8001</span></header>
-<nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="results">Results</button><button data-t="audit">Audit</button></nav>
+<nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="approvals">Approvals</button><button data-t="results">Results</button><button data-t="audit">Audit</button></nav>
 <main>
 
 <section class="tab on" id="demo">
@@ -255,6 +277,10 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 10px;
  <div class="card"><h2>Latest events</h2><table><thead><tr><th>Time</th><th>Severity</th><th>Source</th><th>Rule</th><th>What happened</th></tr></thead><tbody id="evBody"></tbody></table></div>
 </section>
 
+<section class="tab" id="approvals"><div class="card"><h2>Waiting for a human decision</h2>
+ <p class="mute">When the agent is started with REQUIRE_APPROVAL=1, an email never leaves on its own: it waits here. Approve it and it is written to the outbox, deny it and nothing happens.</p>
+ <table><thead><tr><th>#</th><th>Time</th><th>Action</th><th>Details</th><th></th></tr></thead><tbody id="apBody"></tbody></table></div>
+ <div class="card"><h2>Recent decisions</h2><table><thead><tr><th>#</th><th>Time</th><th>Status</th><th>To</th></tr></thead><tbody id="apHist"></tbody></table></div></section>
 <section class="tab" id="results"><div id="resBox" class="mute">Loading...</div></section>
 <section class="tab" id="audit"><div id="auditBox" class="mute">Loading...</div></section>
 
@@ -267,7 +293,7 @@ function pct(a,n){return n?Math.round(100*a/n):0}
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));$(b.dataset.t).classList.add('on');
- if(b.dataset.t==='results')loadResults();if(b.dataset.t==='audit')loadAudit();if(b.dataset.t==='alerts')loadAlerts();});
+ if(b.dataset.t==='results')loadResults();if(b.dataset.t==='audit')loadAudit();if(b.dataset.t==='alerts')loadAlerts();if(b.dataset.t==='approvals')loadApprovals();});
 // status
 async function status(){try{const s=await (await fetch('/api/status')).json();
  $('stAgent').className='chip '+(s.agent?'up':'down');$('stFw').className='chip '+(s.firewall?'up':'down');}catch(e){}}
@@ -312,6 +338,17 @@ async function loadAlerts(){let d;try{d=await (await fetch('/api/alerts')).json(
   tr.append(el('td','',e.layer),el('td','',e.rule));const w=el('td','',e.title);w.append(el('div','mute',e.detail));tr.append(w);tb.append(tr)});
  if(!d.latest.length){const tr=el('tr');const td=el('td','mute','No alerts yet. Send an attack in the demo tab or run a scan.');td.colSpan=5;tr.append(td);tb.append(tr)}}
 loadAlerts();setInterval(()=>{if($('alerts').classList.contains('on'))loadAlerts()},2500);
+// approvals
+async function loadApprovals(){let d;try{d=await (await fetch('/api/approvals')).json()}catch(e){return}
+ const tb=$('apBody');tb.replaceChildren();
+ if(!d.pending.length){const tr=el('tr');const td=el('td','mute','Nothing is waiting.');td.colSpan=5;tr.append(td);tb.append(tr)}
+ d.pending.forEach(i=>{const tr=el('tr');const a=i.args||{};tr.append(el('td','',i.id),el('td','',i.ts.replace('T',' ')),el('td','',i.tool));
+  const det=el('td','','To: '+(a.to||'')+' | Subject: '+(a.subject||''));det.append(el('div','mute',(a.body||'').slice(0,160)));tr.append(det);
+  const act=el('td');[['approve','Approve'],['deny','Deny']].forEach(([k,label])=>{const b=el('button','go',label);if(k==='deny')b.style.background='#6b7079';b.style.marginRight='6px';
+   b.onclick=async()=>{await fetch('/api/approvals/'+i.id+'/'+k,{method:'POST'});loadApprovals()};act.append(b)});tr.append(act);tb.append(tr)});
+ const hb=$('apHist');hb.replaceChildren();
+ d.history.filter(i=>i.status!=='pending').forEach(i=>{const tr=el('tr');tr.append(el('td','',i.id),el('td','',(i.decided_at||i.ts).replace('T',' ')));const s=el('td');s.append(badge(i.status,i.status==='approved'?'amb':'grn'));tr.append(s,el('td','',(i.args||{}).to||''));hb.append(tr)})}
+setInterval(()=>{if($('approvals').classList.contains('on'))loadApprovals()},2500);
 // results
 async function loadResults(){const d=await (await fetch('/api/results')).json();const box=$('resBox');box.replaceChildren();box.className='';
  d.forEach(set=>{const c=el('div','card');c.append(el('h2','',set.title));

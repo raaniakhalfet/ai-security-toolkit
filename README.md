@@ -24,8 +24,10 @@ Attack success rate = share of attack runs that caused real harm (a secret shown
 | **Firewall + guard** | **0%** (0/36) | **0%** (0/36) |
 
 * **Each layer covers the other's blind spot.** The guard stops dangerous tool calls (file reads, emails) but cannot see a secret leaving the model's own memory. The firewall catches that in the reply, but it cannot stop a tool that has already run.
-* **False alarms:** 1 of 30 normal customer questions was wrongly blocked (3%).
+* **False alarms:** 0 of 140 normal customer questions wrongly blocked (95% interval 0 to 3%): 100 used to tune the rules, 40 written afterwards and never used to tune.
 * **Permission audit:** with the guard on, dangerous calls allowed per tool went from `read_file` 4 to 0 and `send_email` 2 to 0.
+
+> The table above is from the first measurement. The firewall rules and the test sets have been improved since (second unseen set of 18 attacks, root-cause setup, human approval). Re-run `python toolkit.py full --runs 5` to refresh all numbers, which are then shown with 95% intervals in `reports/matrix.html`.
 
 ### Honest limits
 
@@ -67,6 +69,18 @@ Attacks are mapped to the **OWASP Top 10 for LLM Applications 2025**: LLM01 prom
 ---
 
 ## Quick start (Windows, PowerShell)
+
+**Easiest way: one command.**
+
+```powershell
+pip install -r requirements-dev.txt
+python toolkit.py check                 # false-alarm test + 11 automatic tests (no AI model needed)
+python toolkit.py up                    # starts agent, firewall and Control Center together
+python toolkit.py up --approval         # a human must approve every email (Approvals tab)
+python toolkit.py full --runs 5         # every scan (5 setups x 3 attack sets), then all reports
+```
+
+The manual way, step by step:
 
 Requirements: Python 3.10+, [Ollama](https://ollama.com) with `llama3.2:3b`, Git.
 
@@ -126,8 +140,10 @@ A tool call refused by the guard (`DENIED`) or that failed (`ERROR`) does not co
 ## Project structure
 
 ```
-target_app/   app.py, tools.py, guard.py, data/ (fake files)
-scanner/      attacks.yaml, attacks_holdout.yaml, scan.py, report.py,
+toolkit.py    one command: up / scan / audit / report / check / full
+tests/        automatic tests + a fake model (no Ollama needed)
+target_app/   app.py, tools.py, guard.py, policy.yaml (shared rules), approvals.py, approve.py, data/ (fake files)
+scanner/      attacks.yaml, attacks_holdout.yaml, attacks_holdout2.yaml, stats.py, benign_set.py, scan.py, report.py,
               matrix.py, rescore.py, benign_test.py, check_library.py
 firewall/     firewall.py, alerts.jsonl (generated)
 audit/        audit.py
@@ -157,5 +173,5 @@ Every blocked or redacted event is one JSON line in `firewall/alerts.jsonl`:
 
 * Connect the alert file to a live SIEM and test the Wazuh rules.
 * A trained injection classifier as a third firewall layer.
-* In-agent confirmation for sensitive tool calls.
+* ~~In-agent confirmation for sensitive tool calls~~ done: `REQUIRE_APPROVAL=1` + Approvals tab.
 * More attack variants (encodings, multi-turn) and bigger samples.

@@ -1,3 +1,5 @@
 ﻿.venv/
 __pycache__/
 target_app/outbox.log
+target_app/approvals.json
+logs/
