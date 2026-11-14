@@ -138,7 +138,7 @@ def test_human_approval_flow(stack):
     APPROVALS.unlink(missing_ok=True)
 
 
-def test_scanner_end_to_end(stack, tmp_path):
+def test_scanner_end_to_end(stack):
     subprocess.run([sys.executable, "scan.py", "--url", "http://127.0.0.1:18000/chat", "--runs", "1",
                     "--label", "citest", "--only", "prompt_leak"], cwd=ROOT / "scanner", check=True, capture_output=True)
     files = sorted((ROOT / "reports").glob("scan_citest_*.json"))
@@ -185,3 +185,13 @@ def test_every_attack_category_has_owasp_and_atlas_labels():
             assert a["category"] in frameworks.CATEGORY_MAP, a["id"]
     for owasp, atlas in frameworks.CATEGORY_MAP.values():
         assert all(i in frameworks.OWASP for i in owasp) and all(i in frameworks.ATLAS for i in atlas)
+
+
+def test_report_page_builds_in_both_languages():
+    sys.path.insert(0, str(ROOT / "dashboard"))
+    from fastapi.testclient import TestClient
+    import dashboard
+    c = TestClient(dashboard.app)
+    for lang, word in (("en", "Summary"), ("fr", "Résumé")):
+        r = c.get(f"/report?lang={lang}")
+        assert r.status_code == 200 and word in r.text and "MITRE ATLAS" in r.text

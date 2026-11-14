@@ -158,6 +158,10 @@ reports/      scan results and HTML reports (generated)
 docs/         findings and demo script
 ```
 
+## Test report (PDF)
+
+In the Control Center click **Create report (PDF)**. A printable A4 report opens (French by default, English with the link at the top): summary with intervals, results per attack set, findings, OWASP / MITRE ATLAS coverage, permission audit, false alarms, recommendations and limits. Then press the **Save as PDF** button (or Ctrl+P) and choose "Save as PDF". The report is built from the newest saved scans, so run `python toolkit.py full` first. Direct address: `http://127.0.0.1:8002/report?lang=fr`.
+
 ## Framework coverage (OWASP LLM Top 10 and MITRE ATLAS)
 
 Every attack category is labelled in `scanner/frameworks.py` and shown in the Control Center (Results tab, and next to each alert).

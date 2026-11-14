@@ -191,6 +191,25 @@ def api_frameworks():
     return {"rows": rows, "not_covered": frameworks.NOT_COVERED}
 
 
+@app.get("/report", response_class=HTMLResponse)
+def report(lang: str = "en"):
+    """A printable test report built from the saved scans. Open it, then Print > Save as PDF."""
+    import report_page
+    benign = None
+    try:
+        sys.path.insert(0, str(ROOT / "firewall"))
+        from firewall import check_input
+        from benign_set import NORMAL, NORMAL_UNSEEN
+        allq = NORMAL + NORMAL_UNSEEN
+        benign = {"n": len(allq), "tune": len(NORMAL), "unseen": len(NORMAL_UNSEEN), "wrong": sum(1 for q in allq if check_input(q))}
+    except Exception:
+        pass
+    challenge = api_challenge_list()["rows"]
+    canary_count = sum(1 for e in read_alerts(2000) if e["layer"] == "canary")
+    return report_page.build(lang if lang in ("en", "fr") else "en", api_results(), api_frameworks(), api_audit(), challenge, canary_count, benign,
+                             [t for t, _ in SETS])
+
+
 @app.get("/api/audit")
 def api_audit():
     p = REPORTS / "audit.json"
@@ -396,7 +415,7 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600
  <div class="lights"><span class="chip" id="stAgent"><i></i>Agent :8000</span><span class="chip" id="stFw"><i></i>Firewall :8001</span></div>
 </header>
 <div id="canaryBar" class="canary"></div>
-<nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="approvals">Approvals<span class="n" id="apN"></span></button><button data-t="results">Results</button><button data-t="audit">Audit</button></nav>
+<nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="approvals">Approvals<span class="n" id="apN"></span></button><button data-t="results">Results</button><button data-t="audit">Audit</button><button id="repBtn" style="margin-left:auto">Create report (PDF)</button></nav>
 <main>
 
 <section class="tab on" id="demo">
@@ -454,10 +473,11 @@ function ci(s,n){const w=wilson(s,n);return Math.round(100*w[0])+'-'+Math.round(
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const REDUCE=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // tabs
-document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
- document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+document.querySelectorAll('#nav button[data-t]').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('#nav button[data-t]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));$(b.dataset.t).classList.add('on');
  if(b.dataset.t==='results')loadResults();if(b.dataset.t==='audit')loadAudit();if(b.dataset.t==='alerts')loadAlerts();if(b.dataset.t==='approvals')loadApprovals();});
+$('repBtn').onclick=()=>window.open('/report?lang=fr','_blank');
 // status
 async function status(){try{const s=await (await fetch('/api/status')).json();
  $('stAgent').className='chip '+(s.agent?'up':'down');$('stFw').className='chip '+(s.firewall?'up':'down');}catch(e){}}

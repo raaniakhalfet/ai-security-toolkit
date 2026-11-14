@@ -140,7 +140,7 @@ def cmd_report(a):
 
 def cmd_check(a):
     code = run(["benign_test.py"], ROOT / "scanner")
-    code |= subprocess.run([PY, "-m", "pytest", "-q", "tests"], cwd=ROOT).returncode
+    code |= subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:tmpdir", "tests"], cwd=ROOT).returncode
     sys.exit(code)
 
 
