@@ -57,6 +57,12 @@ def _load_allowed_domains():
 
 
 ALLOWED_EMAIL_DOMAINS = _load_allowed_domains()
+try:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "target_app"))
+    import canary  # canary tokens (traps): shared list in target_app/canaries.yaml
+except Exception:
+    canary = None
 EMAIL_INTENT = re.compile(r"\b(send|email|e-mail|mail|forward|write to)\b", re.I)
 EMAIL_ADDR = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
 
@@ -65,6 +71,7 @@ OUTPUT_PATTERNS = [
     ("api_key", r"sk-[A-Za-z0-9][A-Za-z0-9-]{6,}"),
     ("password", r"(DB_PASSWORD|PASSWORD|API_KEY|INTERNAL_API_KEY)\s*[=:]\s*\S+"),
     ("password", r"NotARealPassword!?"),
+    ("canary", r"CANARY-[0-9A-F]{8}"),
     ("system_prompt", r"You are AcmeBot,? the internal assistant[^\n]*"),
 ]
 SENSITIVE_FILES = ("secrets.txt",)
@@ -141,12 +148,17 @@ def chat(body: Chat):
         log_alert("tool", rule, "alert", detail)
 
     # Layer 3: output filter
-    clean, hits = redact(str(data.get("response", "")))
+    raw_reply = str(data.get("response", ""))
+    clean, hits = redact(raw_reply)
     action = "passed"
+    if canary:
+        for token, source in canary.tokens_in(raw_reply):
+            log_alert("canary", "canary_token_in_reply", "alert", f"{token} (planted in {source}) was about to reach the user")
     if hits:
         action = "redacted"
         for h in hits:
-            log_alert("output", h, "redacted", data.get("response", ""))
+            if h != "canary":
+                log_alert("output", h, "redacted", data.get("response", ""))
         clean = clean if clean.strip() != "[REDACTED]" else BLOCK_MESSAGE
     data["response"] = clean
     data["firewall"] = {"action": action, "rules": hits}

@@ -47,6 +47,8 @@ app = FastAPI(title="AI Security Toolkit Control Center")
 # ------------------------------------------------------------------ alerts
 def severity(ev):
     layer, rule, action = ev["layer"], ev["rule"], ev["action"]
+    if layer == "canary":
+        return "critical", "Canary triggered: a trap was touched"
     if layer == "tool":
         return "critical", "Dangerous tool call was executed"
     if layer == "agent_guard":
@@ -118,6 +120,8 @@ def api_alerts():
     return {
         "total": len(events),
         "last_5_min": sum(1 for e in events if (now - e["dt"]).total_seconds() <= 300),
+        "canary_recent": sum(1 for e in events if e["layer"] == "canary" and (now - e["dt"]).total_seconds() <= 600),
+        "canary_last": next(({"ts": e["ts"], "detail": e["detail"]} for e in reversed(events) if e["layer"] == "canary"), None),
         "by_rule": sorted(by_rule.items(), key=lambda x: -x[1]),
         "by_severity": dict(by_sev), "timeline": buckets, "active_incident": active, "incidents": incidents[-8:][::-1],
         "latest": [{k: e[k] for k in ("ts", "layer", "rule", "action", "detail", "severity", "title")} for e in events[-40:][::-1]],
@@ -349,6 +353,8 @@ svg.tl{width:100%;height:100px}
 .chal .cnt .bad b{color:var(--danger)}.chal .cnt .good b{color:var(--safe)}
 .gap{display:none;border:2px solid var(--amber);background:#f2c14e18;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-weight:600}.gap.on{display:block}
 button.alt.on{background:var(--safe);color:var(--onfill)}
+.canary{display:none;max-width:1184px;margin:14px auto 0;background:var(--hot);color:var(--onfill);padding:12px 18px;border-radius:12px;font-weight:700;animation:flash 1.4s infinite}
+.canary.on{display:block}
 .legend{color:var(--mute);font-size:13px;margin-top:6px}
 details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600}
 .hm td{text-align:center}
@@ -358,6 +364,7 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600
  <div class="brand"><h1>AI Security Control Center</h1><p id="headline">Attack, protect and watch an AI agent. Local lab, fake data only.</p></div>
  <div class="lights"><span class="chip" id="stAgent"><i></i>Agent :8000</span><span class="chip" id="stFw"><i></i>Firewall :8001</span></div>
 </header>
+<div id="canaryBar" class="canary"></div>
 <nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="approvals">Approvals<span class="n" id="apN"></span></button><button data-t="results">Results</button><button data-t="audit">Audit</button></nav>
 <main>
 
@@ -519,6 +526,9 @@ $('playAll').onclick=async()=>{if(busy)return;lock(true);
  sc.append(card('bad',aHarm+' of '+nA,'attacks succeeded without protection'),card('good',fHarm+' of '+nA,'attacks succeeded with firewall and guard'),
   card(normalOK?'good':'bad',normalOK?'Answered':'Blocked','the normal question, with protection'));
  sc.classList.add('on');lock(false)};
+async function canaryPoll(){try{const d=await (await fetch('/api/alerts')).json();const b=$('canaryBar');
+ if(d.canary_recent>0){b.textContent='CANARY TRIGGERED ('+d.canary_recent+' in the last 10 minutes): '+d.canary_last.detail;b.classList.add('on')}else b.classList.remove('on')}catch(e){}}
+canaryPoll();setInterval(canaryPoll,4000);
 // ---------- alerts
 const SEV={critical:'crit',high:'red',medium:'amb',low:'gry'};
 function badge(t,c){return el('span','badge '+c,t)}

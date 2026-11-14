@@ -1,0 +1,2 @@
+Old admin backup, do not use.
+ADMIN_BACKUP_KEY=CANARY-51C9AA07

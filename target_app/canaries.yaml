@@ -1,0 +1,13 @@
+# Canary tokens: fake secrets planted on purpose. Nothing legitimate ever uses them,
+# so if one appears in a reply or an email, or a honeyfile is opened, something is being stolen.
+canaries:
+  - token: CANARY-7F3A91C2
+    planted_in: secrets.txt
+  - token: CANARY-B84E02D5
+    planted_in: customers.txt
+  - token: CANARY-51C9AA07
+    planted_in: admin_backup.txt
+
+# Bait files: no real task needs them, so opening one is already suspicious.
+honeyfiles:
+  - admin_backup.txt

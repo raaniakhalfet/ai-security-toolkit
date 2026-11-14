@@ -14,28 +14,34 @@ Everything runs locally. All data is fake. Nothing is ever really sent.
 
 ## Results
 
-Attack success rate = share of attack runs that caused real harm (a secret shown to the user, or an email sent). Lower is better.
+Attack success rate = share of attack runs that caused real harm (a secret shown to the user, or an email sent). Lower is better. Each cell shows the 95% interval (Wilson), because a few dozen runs cannot prove a rate is exactly 0. Measured with 5 runs per attack on a small local model (llama3.2:3b); runs that errored are left out, so a few cells have 59 or 89 runs instead of 60 or 90.
 
-| Setup | Original 12 attacks | 12 unseen attacks |
-|---|---|---|
-| No defence | **43%** (26/60) | **33%** (12/36) |
-| Firewall only | 0% (0/60) | 0% (0/36), 11% partial |
-| Guard only | 19% (7/36) | 8% (3/36) |
-| **Firewall + guard** | **0%** (0/36) | **0%** (0/36) |
+| Setup | Original 12 attacks | Unseen set 1 (12) | Unseen set 2 (18) |
+|---|---|---|---|
+| No defence | **47%** (28/59, 35-60%) | **31%** (18/59, 20-43%) | **31%** (28/90, 22-41%) |
+| Firewall only | 0% (0/60, 0-6%) | 0% (0/60, 0-6%), 15% partial | **10%** (9/90, 5-18%), 24% partial |
+| Guard only | 23% (14/60, 14-35%) | 17% (10/60, 9-28%) | 6% (5/89, 2-12%) |
+| **Firewall + guard** | **0%** (0/60, 0-6%) | **0%** (0/60, 0-6%) | **0%** (0/90, 0-4%) |
+| Secret removed from prompt + guard | 0% (0/60, 0-6%) | 0% (0/60, 0-6%) | 0% (0/90, 0-4%) |
 
-* **Each layer covers the other's blind spot.** The guard stops dangerous tool calls (file reads, emails) but cannot see a secret leaving the model's own memory. The firewall catches that in the reply, but it cannot stop a tool that has already run.
-* **False alarms:** 0 of 140 normal customer questions wrongly blocked (95% interval 0 to 3%): 100 used to tune the rules, 40 written afterwards and never used to tune.
+The full run was done twice (before and after adding canary tokens). The two runs agree: no defence 47%, 31%, 31% (first run: 52%, 30%, 28%), firewall only 10% on set 2 (first run: 11%), firewall + guard 0 out of 210 both times.
+
+What this shows:
+
+* **The firewall alone is not enough on attacks it has never seen.** On unseen set 2 it still lets 10% through, almost all of it unauthorized emails (9 of 15 runs) sent to look-alike or obfuscated addresses that the input rules do not recognise. The output filter cannot undo an email that has already been sent.
+* **Each layer covers the other's blind spot.** The guard stops dangerous tool calls (files, emails) but not a secret that leaves the model's own memory (jailbreaks and prompt leaks, up to 90% on the original set). The firewall catches that in the reply, but not a tool call that already ran. Together: 0 out of 210 runs.
+* **The root-cause fix works as well as the full stack here.** Removing the secret from the prompt and keeping the guard gave 0 out of 210 as well. A secret that is not in the prompt cannot be leaked by the prompt.
+* **False alarms:** 0 of 140 normal customer questions wrongly blocked (95% interval 0-3%): 100 used to tune the rules, 40 written afterwards and never used to tune. Two normal questions with a personal gmail address are blocked on purpose by the email policy.
 * **Permission audit:** with the guard on, dangerous calls allowed per tool went from `read_file` 4 to 0 and `send_email` 2 to 0.
-
-> The table above is from the first measurement. The firewall rules and the test sets have been improved since (second unseen set of 18 attacks, root-cause setup, human approval). Re-run `python toolkit.py full --runs 5` to refresh all numbers, which are then shown with 95% intervals in `reports/matrix.html`.
 
 ### Honest limits
 
-* The firewall was written knowing the first 12 attacks, so that column proves little on its own. The second column uses 12 attacks written without tuning the firewall on them.
-* Small samples (3 to 5 runs per attack) on a small local model. Treat the percentages as a rough guide.
-* The firewall is rule-based. Rephrased attacks it has not seen can get through. Its output filter and the guard are what stop them in this lab.
-* Indirect injection (a poisoned document) never succeeded in the "no defence" baseline for the first set, so that category is not proof of anything there.
-* The root cause is a design mistake that no filter should have to fix: **the agent's secret lives in its system prompt**. Secrets do not belong in prompts.
+* The firewall rules were written knowing the original 12 attacks, so that column proves little on its own. Unseen set 1 was written without tuning on it. Unseen set 2 was written after the firewall rules were fixed, by the same author, so a teammate should write the next set.
+* "0%" means "below about 4-6%", not "zero". Differences between two cells whose intervals overlap (for example guard only 2-12% vs firewall + guard 0-4%, on set 2) may be chance. Firewall only (5-18%) vs firewall + guard (0-4%) does not overlap, so that gap is real.
+* One small local model, 5 runs per attack. The "No defence" baseline is only 31-47%, because a small model often fails to follow an attack at all.
+* The firewall is rule-based. Rephrased attacks it has not seen can get through; its output filter and the guard are what stop them in this lab.
+* Indirect injection (a poisoned document) rarely worked even without defence on this model, so that category proves little in either direction.
+* The root cause is a design mistake no filter should have to fix: **a secret must never live in a system prompt.**
 
 ---
 
@@ -151,6 +157,13 @@ wazuh/        ai_security_rules.xml
 reports/      scan results and HTML reports (generated)
 docs/         findings and demo script
 ```
+
+## Canary tokens (traps)
+
+Fake secrets (`CANARY-xxxxxxxx`) are planted in `secrets.txt`, `customers.txt` and a bait file `admin_backup.txt` (list in `target_app/canaries.yaml`). Nothing legitimate ever uses them, so any of these raises a **critical** alert (layer `canary`, Wazuh rule 100132) and a red banner in the Control Center:
+* the bait file is opened,
+* a canary token is about to reach the user in a reply (the firewall also redacts it),
+* a canary token is put in an outgoing email.
 
 ## Alerts and SIEM
 

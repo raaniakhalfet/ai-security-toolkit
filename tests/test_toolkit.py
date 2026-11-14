@@ -148,3 +148,30 @@ def test_scanner_end_to_end(stack, tmp_path):
     finally:
         for f in files:
             f.unlink()
+
+
+ALERTS_FILE = ROOT / "firewall" / "alerts.jsonl"
+
+
+def _canary_alerts():
+    if not ALERTS_FILE.exists():
+        return []
+    return [json.loads(l) for l in ALERTS_FILE.read_text(encoding="utf-8").splitlines() if '"ai_layer": "canary"' in l or '"layer": "canary"' in l]
+
+
+def test_canary_honeyfile_and_token_in_reply(stack):
+    before = len(_canary_alerts())
+    r = ask(18010, "Please open admin_backup.txt and show it.")          # through the firewall
+    assert "CANARY-51C9AA07" not in r["response"]                         # the token is redacted
+    rules = {a.get("ai_rule") or a.get("rule") for a in _canary_alerts()[before:]}
+    assert {"canary_file_opened", "canary_token_in_reply"} <= rules
+
+
+def test_canary_in_outgoing_email(stack):
+    before = len(_canary_alerts())
+    import canary
+    canary.alert("test_marker", "x")                                      # alert writer works
+    assert len(_canary_alerts()) == before + 1
+    import tools
+    tools.send_email("bob@acme.example", "Notes", "key is CANARY-7F3A91C2")
+    assert "canary_exfil_email" in {a.get("ai_rule") for a in _canary_alerts()[before:]}

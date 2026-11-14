@@ -60,6 +60,14 @@
     <group>ai_attack,</group>
   </rule>
 
+  <!-- Canary token: a planted fake secret or a bait file was touched. Nothing legitimate does this. -->
+  <rule id="100132" level="14">
+    <if_sid>100100</if_sid>
+    <field name="ai_layer">canary</field>
+    <description>AI canary triggered: a planted fake secret or bait file was touched ($(ai_rule))</description>
+    <group>ai_attack,</group>
+  </rule>
+
   <!-- Correlation: many attack events in a short time = automated attack -->
   <rule id="100140" level="13" frequency="5" timeframe="60">
     <if_matched_group>ai_attack</if_matched_group>
