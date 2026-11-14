@@ -26,6 +26,8 @@ from pydantic import BaseModel
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT / "target_app"))
+sys.path.insert(0, str(ROOT / "scanner"))
+import frameworks  # noqa: E402  (OWASP and MITRE ATLAS labels)
 import approvals  # noqa: E402  (human approval queue shared with the agent guard)
 
 REPORTS = ROOT / "reports"
@@ -124,7 +126,8 @@ def api_alerts():
         "canary_last": next(({"ts": e["ts"], "detail": e["detail"]} for e in reversed(events) if e["layer"] == "canary"), None),
         "by_rule": sorted(by_rule.items(), key=lambda x: -x[1]),
         "by_severity": dict(by_sev), "timeline": buckets, "active_incident": active, "incidents": incidents[-8:][::-1],
-        "latest": [{k: e[k] for k in ("ts", "layer", "rule", "action", "detail", "severity", "title")} for e in events[-40:][::-1]],
+        "latest": [{**{k: e[k] for k in ("ts", "layer", "rule", "action", "detail", "severity", "title")},
+                    "tag": " / ".join(frameworks.RULE_TAGS.get(e["rule"], ()))} for e in events[-40:][::-1]],
     }
 
 
@@ -159,6 +162,33 @@ def api_results():
             rows.append(row)
         out.append({"title": title, "rows": rows, "categories": sorted(cats)})
     return out
+
+
+@app.get("/api/frameworks")
+def api_frameworks():
+    import yaml
+    n_attacks = defaultdict(int)
+    for f in ("attacks.yaml", "attacks_holdout.yaml", "attacks_holdout2.yaml"):
+        p = ROOT / "scanner" / f
+        if p.exists():
+            for a in (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("attacks", []):
+                n_attacks[a["category"]] += 1
+    pooled = {k: defaultdict(lambda: [0, 0]) for k in ("none", "both")}   # category -> [harmful runs, runs]
+    for _title, labels in SETS:
+        for key in pooled:
+            d = newest_scan(labels[key])
+            if d:
+                for r in d["results"]:
+                    if r["outcome"] != "error":
+                        pooled[key][r["category"]][1] += 1
+                        pooled[key][r["category"]][0] += r["outcome"] == "success"
+    rows = []
+    for cat, (owasp, atlas) in frameworks.CATEGORY_MAP.items():
+        rows.append({"category": cat, "attacks": n_attacks.get(cat, 0),
+                     "owasp": [{"id": i, "name": frameworks.OWASP[i]} for i in owasp],
+                     "atlas": [{"id": i, "name": frameworks.ATLAS[i]} for i in atlas],
+                     "none": pooled["none"][cat], "both": pooled["both"][cat]})
+    return {"rows": rows, "not_covered": frameworks.NOT_COVERED}
 
 
 @app.get("/api/audit")
@@ -355,6 +385,7 @@ svg.tl{width:100%;height:100px}
 button.alt.on{background:var(--safe);color:var(--onfill)}
 .canary{display:none;max-width:1184px;margin:14px auto 0;background:var(--hot);color:var(--onfill);padding:12px 18px;border-radius:12px;font-weight:700;animation:flash 1.4s infinite}
 .canary.on{display:block}
+.tag{display:inline-block;margin-top:4px;font-size:12px;color:var(--safe);border:1px solid var(--line);border-radius:6px;padding:0 6px}
 .legend{color:var(--mute);font-size:13px;margin-top:6px}
 details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600}
 .hm td{text-align:center}
@@ -546,7 +577,7 @@ async function loadAlerts(){let d;try{d=await (await fetch('/api/alerts')).json(
  const il=$('incList');il.replaceChildren();d.incidents.forEach(x=>il.append(el('div','mute','Automated attack alert at '+x.ts.replace('T',' ')+' ('+x.count+' events in 60 s)')));
  const tb=$('evBody');tb.replaceChildren();
  d.latest.forEach(e=>{const tr=el('tr');tr.append(el('td','',e.ts.split('T')[1]||e.ts));const s=el('td');s.append(badge(e.severity,SEV[e.severity]));tr.append(s);
-  tr.append(el('td','',e.layer),el('td','',e.rule));const w=el('td','',e.title);w.append(el('div','mute',e.detail));tr.append(w);tb.append(tr)});
+  tr.append(el('td','',e.layer),el('td','',e.rule));const w=el('td','',e.title);w.append(el('div','mute',e.detail));if(e.tag)w.append(el('div','tag',e.tag));tr.append(w);tb.append(tr)});
  if(!d.latest.length){const tr=el('tr');const td=el('td','mute','No alerts yet. Send an attack in the demo tab or run a scan.');td.colSpan=5;tr.append(td);tb.append(tr)}}
 loadAlerts();setInterval(()=>{if($('alerts').classList.contains('on'))loadAlerts()},2500);
 // ---------- approvals
@@ -584,6 +615,11 @@ async function loadResults(){const h=await loadHeadline();const d=h?h.d:await (a
    const x=r.cats[cat]||{n:0,success:0,partial:0};const p=pct(x.success,x.n);const td=el('td','',x.n?p+'%':'-');
    if(x.n)td.style.background=p?'rgba(255,122,69,'+(0.15+0.55*p/100)+')':'rgba(111,168,255,.14)';tr.append(td)});t2.append(tr)});
   det.append(t2);c.append(det);box.append(c)});
+ try{const f=await (await fetch('/api/frameworks')).json();const c=el('div','card');c.append(el('h2','','What the attacks cover: OWASP LLM Top 10 and MITRE ATLAS'));
+  const t=el('table');const h=el('tr');['Attack type','OWASP','MITRE ATLAS','Attacks','Without defence','Firewall + guard'].forEach(x=>h.append(el('th','',x)));t.append(h);
+  f.rows.forEach(r=>{const tr=el('tr');tr.append(el('td','',r.category.replace(/_/g,' ')),el('td','',r.owasp.map(o=>o.id+' '+o.name).join(', ')),el('td','',r.atlas.map(a=>a.id+' '+a.name).join(', ')),el('td','',r.attacks));
+   tr.append(el('td','',r.none[1]?pct(r.none[0],r.none[1])+'% ('+r.none[0]+'/'+r.none[1]+')':'-'),el('td','',r.both[1]?pct(r.both[0],r.both[1])+'% ('+r.both[0]+'/'+r.both[1]+')':'-'));t.append(tr)});c.append(t);
+  c.append(el('div','legend','Not covered yet: '+f.not_covered.join(', ')+'.'));c.append(el('div','legend','Check the ATLAS IDs on atlas.mitre.org before quoting them: some come from secondary sources.'));box.append(c)}catch(e){}
  box.append(el('p','mute','Small local model and a few runs per attack: a rough guide. 0% means below roughly 4 to 6%, not zero.'))}
 loadHeadline();
 // ---------- audit

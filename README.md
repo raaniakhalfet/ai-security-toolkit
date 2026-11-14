@@ -158,6 +158,22 @@ reports/      scan results and HTML reports (generated)
 docs/         findings and demo script
 ```
 
+## Framework coverage (OWASP LLM Top 10 and MITRE ATLAS)
+
+Every attack category is labelled in `scanner/frameworks.py` and shown in the Control Center (Results tab, and next to each alert).
+
+| Attack type | Attacks | OWASP LLM Top 10 | MITRE ATLAS |
+|---|---|---|---|
+| Prompt leak | 8 | LLM07 System Prompt Leakage | AML.T0056 Extract LLM System Prompt, AML.T0051.000 |
+| Jailbreak | 7 | LLM01 Prompt Injection | AML.T0054 LLM Jailbreak, AML.T0051.000 |
+| Indirect injection | 7 | LLM01 Prompt Injection | AML.T0051.001 Indirect |
+| Sensitive file access | 7 | LLM02 Sensitive Information Disclosure | AML.T0057 LLM Data Leakage, AML.T0053 AI Agent Tool Invocation |
+| Path traversal | 6 | LLM06 Excessive Agency | AML.T0053 AI Agent Tool Invocation |
+| Unauthorized action | 7 | LLM06 Excessive Agency | AML.T0086 Exfiltration via AI Agent Tool Invocation, AML.T0053 |
+
+AML.T0051 (and its .000 / .001 sub-techniques) and AML.T0086 were checked on MITRE's D3FEND pages. AML.T0053, T0054, T0056 and T0057 come from secondary sources that agree with each other: check them on atlas.mitre.org before quoting them.
+Not covered yet: multi-turn attacks, training-data poisoning, model theft, supply-chain attacks, image or audio injection.
+
 ## Canary tokens (traps)
 
 Fake secrets (`CANARY-xxxxxxxx`) are planted in `secrets.txt`, `customers.txt` and a bait file `admin_backup.txt` (list in `target_app/canaries.yaml`). Nothing legitimate ever uses them, so any of these raises a **critical** alert (layer `canary`, Wazuh rule 100132) and a red banner in the Control Center:

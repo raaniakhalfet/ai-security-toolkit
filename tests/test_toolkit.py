@@ -175,3 +175,13 @@ def test_canary_in_outgoing_email(stack):
     import tools
     tools.send_email("bob@acme.example", "Notes", "key is CANARY-7F3A91C2")
     assert "canary_exfil_email" in {a.get("ai_rule") for a in _canary_alerts()[before:]}
+
+
+def test_every_attack_category_has_owasp_and_atlas_labels():
+    import yaml
+    import frameworks
+    for lib in ("attacks.yaml", "attacks_holdout.yaml", "attacks_holdout2.yaml"):
+        for a in yaml.safe_load((ROOT / "scanner" / lib).read_text(encoding="utf-8"))["attacks"]:
+            assert a["category"] in frameworks.CATEGORY_MAP, a["id"]
+    for owasp, atlas in frameworks.CATEGORY_MAP.values():
+        assert all(i in frameworks.OWASP for i in owasp) and all(i in frameworks.ATLAS for i in atlas)
