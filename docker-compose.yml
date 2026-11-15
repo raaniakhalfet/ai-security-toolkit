@@ -1,5 +1,5 @@
 # AI Security Toolkit with Docker:      docker compose up --build
-# Stop everything:                       Ctrl+C   (then: docker compose down)
+# Stop everything:                       Ctrl+C   (then: docker compose down --remove-orphans)
 #
 # Uses the real AI model running on YOUR computer (Ollama, port 11434).
 # No model installed? Use the fake one:  docker compose -f docker-compose.yml -f docker-compose.mock.yml up --build
@@ -23,6 +23,7 @@ services:
     ports: ["127.0.0.1:8000:8000"]
     environment:
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434/api/chat}
+      MODEL: ${MODEL:-}                # another AI model, e.g. qwen2.5:3b (empty = llama3.2:3b)
       HARDENED: ${HARDENED:-}
       REQUIRE_APPROVAL: ${REQUIRE_APPROVAL:-}
       SECURE_PROMPT: ${SECURE_PROMPT:-}

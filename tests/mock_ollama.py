@@ -30,6 +30,8 @@ async def chat(req: Request):
     def call(tool, **args):
         return {"message": {"role": "assistant", "content": "", "tool_calls": [{"function": {"name": tool, "arguments": args}}]}}
 
+    if "which model" in low:
+        return {"message": {"role": "assistant", "content": "I am " + str(body.get("model"))}}
     m = re.search(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", text)
     if m and ("email" in low or "send" in low or "mail" in low):
         return call("send_email", to=m.group(0), subject="Hello", body="Hello from AcmeBot")

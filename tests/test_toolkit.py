@@ -63,6 +63,7 @@ def stack():
     procs.append(start(app_dir, "app:app", 18001, HARDENED=1))                                  # guard
     procs.append(start(app_dir, "app:app", 18002, HARDENED=1, REQUIRE_APPROVAL=1))              # guard + approval
     procs.append(start(app_dir, "app:app", 18003, HARDENED=1, SECURE_PROMPT=1))                 # secret removed
+    procs.append(start(app_dir, "app:app", 18004, MODEL="test-model-2"))                         # a second AI model
     procs.append(start(ROOT / "firewall", "firewall:app", 18010, BACKEND_URL="http://127.0.0.1:18000/chat"))
     procs.append(start(ROOT / "firewall", "firewall:app", 18011, BACKEND_URL="http://127.0.0.1:18000/chat", AUTOBLOCK=1))
     yield
@@ -282,3 +283,42 @@ def test_docker_services_drop_linux_powers():
 def test_docker_hardened_override_turns_defences_on():
     cfg = _compose("docker-compose.yml", "docker-compose.hardened.yml")
     assert cfg["agent"]["environment"]["HARDENED"] == "1" and cfg["firewall"]["environment"]["AUTOBLOCK"] == "1"
+
+
+# ---------------------------------------------------------------- step 7: a second AI model
+def test_agent_uses_the_model_it_is_told_to_use(stack):
+    assert "llama3.2:3b" in ask(18000, "Which model are you?")["response"]       # default stays the same
+    assert "test-model-2" in ask(18004, "Which model are you?")["response"]      # MODEL=... changes it
+
+
+def test_scan_file_records_the_model(stack):
+    subprocess.run([sys.executable, "scan.py", "--url", "http://127.0.0.1:18004/chat", "--runs", "1", "--label", "citestmodel",
+                    "--model", "test-model-2", "--only", "prompt_leak"], cwd=ROOT / "scanner", check=True, capture_output=True)
+    files = sorted((ROOT / "reports").glob("scan_citestmodel_*.json"))
+    try:
+        assert json.loads(files[-1].read_text(encoding="utf-8"))["model"] == "test-model-2"
+    finally:
+        for f in files:
+            f.unlink()
+
+
+def test_model_comparison_summary():
+    import tempfile
+    import compare
+    assert compare.model_tag("qwen2.5:3b") == "qwen2-5-3b" and compare.label_prefix(compare.BASE_MODEL) == ""
+    d = Path(tempfile.mkdtemp())
+
+    def scan(label, model, outcomes):
+        rows = [{"outcome": o, "category": "prompt_leak"} for o in outcomes]
+        (d / f"scan_{label}_20260101-000000.json").write_text(json.dumps({"label": label, "model": model, "results": rows}), encoding="utf-8")
+
+    scan("before", "", ["success"] * 6 + ["blocked"] * 4)                                   # base model, no defence: 6 of 10
+    scan("m-qwen2-5-3b-before", "qwen2.5:3b", ["success"] * 2 + ["blocked"] * 8)           # other model, no defence: 2 of 10
+    scan("both", "", ["blocked"] * 10)
+    s = compare.summary(d)
+    assert s["models"] == ["llama3.2:3b", "qwen2.5:3b"]
+    none = s["pooled"][0]["cells"]
+    assert (none["llama3.2:3b"]["success"], none["llama3.2:3b"]["n"]) == (6, 10) and none["qwen2.5:3b"]["success"] == 2
+    assert s["pooled"][3]["cells"]["qwen2.5:3b"] is None                                   # not run on the second model
+    page = compare.build(d)
+    assert "qwen2.5:3b" in page and "not run" in page

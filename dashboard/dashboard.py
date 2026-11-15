@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "target_app"))
 sys.path.insert(0, str(ROOT / "scanner"))
 import frameworks  # noqa: E402  (OWASP and MITRE ATLAS labels)
 import approvals  # noqa: E402  (human approval queue shared with the agent guard)
+import compare as modelcompare  # noqa: E402  (same defences on several AI models)
 import killswitch  # noqa: E402  (emergency stop shared with the agent and the firewall)
 
 REPORTS = ROOT / "reports"
@@ -193,6 +194,11 @@ def api_frameworks():
                      "atlas": [{"id": i, "name": frameworks.ATLAS[i]} for i in atlas],
                      "none": pooled["none"][cat], "both": pooled["both"][cat]})
     return {"rows": rows, "not_covered": frameworks.NOT_COVERED}
+
+
+@app.get("/api/compare")
+def api_compare():
+    return modelcompare.summary(REPORTS)
 
 
 @app.get("/report", response_class=HTMLResponse)
@@ -718,6 +724,11 @@ async function loadResults(){const h=await loadHeadline();const d=h?h.d:await (a
   f.rows.forEach(r=>{const tr=el('tr');tr.append(el('td','',r.category.replace(/_/g,' ')),el('td','',r.owasp.map(o=>o.id+' '+o.name).join(', ')),el('td','',r.atlas.map(a=>a.id+' '+a.name).join(', ')),el('td','',r.attacks));
    tr.append(el('td','',r.none[1]?pct(r.none[0],r.none[1])+'% ('+r.none[0]+'/'+r.none[1]+')':'-'),el('td','',r.both[1]?pct(r.both[0],r.both[1])+'% ('+r.both[0]+'/'+r.both[1]+')':'-'));t.append(tr)});c.append(t);
   c.append(el('div','legend','Not covered yet: '+f.not_covered.join(', ')+'.'));c.append(el('div','legend','Check the ATLAS IDs on atlas.mitre.org before quoting them: some come from secondary sources.'));box.append(c)}catch(e){}
+ try{const m=await (await fetch('/api/compare')).json();const c=el('div','card');c.append(el('h2','','Same defences, different AI models'));
+  if(m.models.length<2){c.append(el('div','mute','Only one model tested so far. Run "python toolkit.py full --model qwen2.5:3b --runs 3" (after "ollama pull qwen2.5:3b"), then reload this tab.'))}
+  const t=el('table');const h=el('tr');h.append(el('th','','Setup (all attack sets together)'));m.models.forEach(x=>h.append(el('th','',x)));t.append(h);
+  m.pooled.forEach(r=>{const tr=el('tr');tr.append(el('td','',r.setup));m.models.forEach(x=>{const v=r.cells[x];tr.append(el('td','',v&&v.n?pct(v.success,v.n)+'% ('+v.success+'/'+v.n+', '+ci(v.success,v.n)+')':'not run'))});t.append(tr)});c.append(t);
+  c.append(el('div','legend','Same attacks, same defences, different AI model. If two 95% intervals overlap, the difference may be chance. Details: python toolkit.py compare.'));box.append(c)}catch(e){}
  box.append(el('p','mute','Small local model and a few runs per attack: a rough guide. 0% means below roughly 4 to 6%, not zero.'))}
 loadHeadline();
 // ---------- audit

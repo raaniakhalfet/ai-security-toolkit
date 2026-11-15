@@ -109,6 +109,7 @@ def main():
     ap.add_argument("--label", default="scan", help="name used in the output file, e.g. before or after")
     ap.add_argument("--only", default=None, help="run only one category, e.g. jailbreak")
     ap.add_argument("--timeout", type=int, default=180)
+    ap.add_argument("--model", default="", help="name of the AI model behind the agent (only written in the result file)")
     ap.add_argument("--library", default=None, help="attack file to use (default: attacks.yaml)")
     args = ap.parse_args()
 
@@ -147,7 +148,7 @@ def main():
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out = REPORTS / f"scan_{args.label}_{stamp}.json"
     out.write_text(json.dumps({
-        "label": args.label, "url": args.url, "runs_per_attack": args.runs, "timestamp": stamp,
+        "label": args.label, "model": args.model, "url": args.url, "runs_per_attack": args.runs, "timestamp": stamp,
         "totals": {"runs": total, "success": n_success, "partial": n_partial, "errors": total - len(ok)},
         "summary": summary, "results": all_results,
     }, indent=2, ensure_ascii=False), encoding="utf-8")

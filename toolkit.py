@@ -11,6 +11,8 @@
   python toolkit.py check                  false-alarm test + automatic tests (no AI model needed)
   python toolkit.py full --runs 5          run EVERY scan (5 setups x 3 attack sets), then build the reports
   python toolkit.py full --runs 3 --configs none,both --sets holdout2     only part of it
+  python toolkit.py full --model qwen2.5:3b --runs 3    same scans on a second AI model (ollama pull it first)
+  python toolkit.py compare                the same defences on each model, side by side (reports/compare_models.html)
 
 LOCAL LAB ONLY. Servers bind to 127.0.0.1 and only fake data is used.
 """
@@ -22,9 +24,13 @@ import sys
 import time
 from pathlib import Path
 
+import requests
+
 ROOT = Path(__file__).parent
 PY = sys.executable
 LOGS = ROOT / "logs"
+sys.path.insert(0, str(ROOT / "scanner"))
+from compare import BASE_MODEL, label_prefix  # noqa: E402
 
 # setup name -> (agent environment, goes through the firewall?)
 CONFIGS = {
@@ -68,7 +74,7 @@ def need_free(*ports):
 def spawn(name, cwd, module, port, env_extra=None):
     LOGS.mkdir(exist_ok=True)
     log = open(LOGS / f"{name}.log", "w", encoding="utf-8")
-    env = {k: v for k, v in os.environ.items() if k not in ("HARDENED", "SECURE_PROMPT", "REQUIRE_APPROVAL", "AUTOBLOCK")}
+    env = {k: v for k, v in os.environ.items() if k not in ("HARDENED", "SECURE_PROMPT", "REQUIRE_APPROVAL", "AUTOBLOCK", "MODEL")}
     env.update(env_extra or {})
     proc = subprocess.Popen([PY, "-m", "uvicorn", module, "--host", "127.0.0.1", "--port", str(port)],
                             cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -86,10 +92,24 @@ def stop(procs):
             p.kill()
 
 
+def check_model(name):
+    """Stop early with a clear message if Ollama is off or the model is not downloaded."""
+    try:
+        tags = requests.get("http://127.0.0.1:11434/api/tags", timeout=3).json().get("models", [])
+    except Exception:
+        sys.exit("Ollama does not answer on port 11434. Start Ollama first, then try again.")
+    have = {m.get("name", "") for m in tags} | {m.get("name", "").removesuffix(":latest") for m in tags}
+    if name not in have:
+        sys.exit(f"The model {name} is not installed. Download it first:  ollama pull {name}")
+
+
 # ------------------------------------------------------------------ commands
 def cmd_up(a):
     need_free(8000, 8001, 8002)
     env = {}
+    if a.model:
+        check_model(a.model)
+        env["MODEL"] = a.model
     if a.hardened or a.approval or a.secure_prompt:
         env["HARDENED"] = "1"
     if a.approval:
@@ -153,6 +173,11 @@ def cmd_report(a):
     run(["report.py", "--after"], scanner)
     run(["report.py", "--after", "--prefix", "holdout"], scanner)
     run(["matrix.py"], scanner)
+    run(["compare.py"], scanner)
+
+
+def cmd_compare(a):
+    sys.exit(run(["compare.py"], ROOT / "scanner"))
 
 
 def cmd_check(a):
@@ -171,9 +196,14 @@ def cmd_full(a):
         if s not in SETS:
             sys.exit(f"Unknown attack set {s}. Choose from: {', '.join(SETS)}")
     need_free(8000, 8001)
+    model = a.model or BASE_MODEL
+    if a.model and a.model != BASE_MODEL:
+        check_model(a.model)
+        print(f"Model for this run: {a.model} (results are saved apart, the earlier scans are not touched)")
     start = time.time()
     for c in configs:
         env, via_firewall = CONFIGS[c]
+        env = {**env, **({"MODEL": a.model} if a.model and a.model != BASE_MODEL else {})}
         print(f"\n######## setup: {c}  (agent env {env or 'none'}, firewall {'on' if via_firewall else 'off'}) ########", flush=True)
         procs = [spawn("agent", ROOT / "target_app", "app:app", 8000, env)]
         if via_firewall:
@@ -182,8 +212,8 @@ def cmd_full(a):
         try:
             for s in sets:
                 library, prefix = SETS[s]
-                label = f"{prefix}{LABEL[c]}"
-                args = ["scan.py", "--runs", str(a.runs), "--label", label, "--url", url]
+                label = f"{label_prefix(model)}{prefix}{LABEL[c]}"
+                args = ["scan.py", "--runs", str(a.runs), "--label", label, "--url", url, "--model", model]
                 if library:
                     args += ["--library", library]
                 print(f"\n---- scan {label} ----", flush=True)
@@ -202,6 +232,7 @@ def main():
     p.add_argument("--hardened", action="store_true", help="turn the guard on")
     p.add_argument("--approval", action="store_true", help="guard + human approval for emails")
     p.add_argument("--autoblock", action="store_true", help="firewall blocks a source after 5 attacks in 60 s")
+    p.add_argument("--model", default="", help="AI model for the agent, e.g. qwen2.5:3b (default llama3.2:3b)")
     p.add_argument("--secure-prompt", action="store_true", help="remove the secret from the system prompt")
     p.set_defaults(fn=cmd_up)
 
@@ -225,7 +256,10 @@ def main():
     p.add_argument("--runs", type=int, default=5)
     p.add_argument("--configs", default=",".join(CONFIGS))
     p.add_argument("--sets", default=",".join(SETS))
+    p.add_argument("--model", default="", help="run everything on this AI model, e.g. qwen2.5:3b")
     p.set_defaults(fn=cmd_full)
+
+    sub.add_parser("compare", help="same defences on each AI model, side by side").set_defaults(fn=cmd_compare)
 
     a = ap.parse_args()
     a.fn(a)

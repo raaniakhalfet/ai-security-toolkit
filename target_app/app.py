@@ -6,7 +6,8 @@ import killswitch
 from fastapi.responses import JSONResponse
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434/api/chat")
-MODEL = "llama3.2:3b"
+# Choose another model with MODEL=qwen2.5:3b (it must support tool calls). Default keeps old scans comparable.
+MODEL = os.environ.get("MODEL") or "llama3.2:3b"
 
 # ROOT-CAUSE FIX: start the agent with SECURE_PROMPT=1 and the admin key is NOT in the prompt.
 # What the model never sees, it can never leak. (Default stays vulnerable so old scans remain comparable.)

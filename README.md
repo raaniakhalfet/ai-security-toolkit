@@ -196,13 +196,26 @@ Two ways to **respond** to an attack, not only to detect it (NIST: Respond):
 Both write a critical alert (layer `response`, Wazuh rule 100133). Four automatic tests cover them (kill switch, blocking after 5 attacks, normal users never blocked, off by default).
 
 
+## Second AI model (does it depend on the model?)
+
+The earlier results come from one small model (llama3.2:3b). To check that the defences do not only work on that one, run the same scans on another model:
+
+```
+ollama pull qwen2.5:3b
+python toolkit.py full --model qwen2.5:3b --runs 3
+python toolkit.py compare
+```
+
+The new scans are saved with their own names (`m-qwen2-5-3b-...`), so the earlier results are never replaced. `compare` builds `reports/compare_models.html`, and the Control Center shows the same table at the bottom of the **Results** tab. The model must support tool calls in Ollama (qwen2.5 and llama3.1 do). You can also start the agent on another model with `python toolkit.py up --model qwen2.5:3b` (Docker: `MODEL=qwen2.5:3b docker compose up`).
+How to read it: a big difference with **no defence** shows that some models are easier to trick. The firewall and the guard work on messages and tool calls, so they should protect both models. When two 95% intervals overlap, the difference may be chance.
+
 ## Docker (one command)
 
 ```
 docker compose up --build
 ```
 
-Starts the agent (8000), the firewall (8001) and the Control Center (8002), each in its own container. Open http://127.0.0.1:8002. Stop with `Ctrl+C`, then `docker compose down`.
+Starts the agent (8000), the firewall (8001) and the Control Center (8002), each in its own container. Open http://127.0.0.1:8002. Stop with `Ctrl+C`, then `docker compose down --remove-orphans` (the `--remove-orphans` also removes the fake model if you started it with the mock file).
 
 | What you want | Command |
 | --- | --- |
