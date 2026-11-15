@@ -141,7 +141,7 @@ AUTOBLOCK = os.environ.get("AUTOBLOCK") == "1"
 BLOCK_AFTER = int(os.environ.get("BLOCK_AFTER", "5"))          # attack events ...
 BLOCK_WINDOW = int(os.environ.get("BLOCK_WINDOW", "60"))       # ... inside this many seconds
 BLOCK_SECONDS = int(os.environ.get("BLOCK_SECONDS", "300"))    # block lasts this long (or until unblocked)
-BLOCKED_FILE = Path(__file__).parent / "blocked.json"
+BLOCKED_FILE = Path(os.environ.get("BLOCKED_FILE") or Path(__file__).parent / "blocked.json")
 _recent = defaultdict(deque)
 
 

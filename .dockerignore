@@ -1,0 +1,10 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+target_app/outbox.log
+target_app/approvals.json
+target_app/killswitch.json
+firewall/blocked.json

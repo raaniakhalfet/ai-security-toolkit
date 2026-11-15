@@ -1,0 +1,15 @@
+# Adds a FAKE AI model so everything works without installing Ollama (also used by GitHub Actions).
+#   docker compose -f docker-compose.yml -f docker-compose.mock.yml up --build
+services:
+  mock-model:
+    build: .
+    working_dir: /app
+    command: python tests/mock_ollama.py
+    environment:
+      MOCK_HOST: 0.0.0.0          # only reachable by the other containers: no port is published
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+  agent:
+    environment:
+      OLLAMA_URL: http://mock-model:11435/api/chat
+    depends_on: [mock-model]

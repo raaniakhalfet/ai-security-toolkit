@@ -6,3 +6,5 @@ logs/
 reports/challenge_log*.jsonl
 target_app/killswitch.json
 firewall/blocked.json
+tests/.killswitch_test.json
+tests/.blocked_test.json

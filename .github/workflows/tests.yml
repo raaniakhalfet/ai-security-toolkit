@@ -11,3 +11,17 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python scanner/benign_test.py
       - run: python -m pytest -q tests
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d --build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - run: python tests/docker_smoke.py
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.mock.yml down

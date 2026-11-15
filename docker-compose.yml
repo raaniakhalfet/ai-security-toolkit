@@ -1,0 +1,47 @@
+# AI Security Toolkit with Docker:      docker compose up --build
+# Stop everything:                       Ctrl+C   (then: docker compose down)
+#
+# Uses the real AI model running on YOUR computer (Ollama, port 11434).
+# No model installed? Use the fake one:  docker compose -f docker-compose.yml -f docker-compose.mock.yml up --build
+# Guard on + automatic blocking:         docker compose -f docker-compose.yml -f docker-compose.hardened.yml up --build
+#
+# LOCAL LAB ONLY. Every published port is bound to 127.0.0.1, so nothing is reachable from the network.
+
+x-common: &common
+  build: .
+  working_dir: /app
+  volumes:
+    - .:/app                       # shared alerts.jsonl, killswitch.json, blocked.json, approvals.json, reports
+  cap_drop: [ALL]                  # the programs need no special Linux powers
+  security_opt: ["no-new-privileges:true"]
+  restart: "no"
+
+services:
+  agent:
+    <<: *common
+    command: python -m uvicorn app:app --host 0.0.0.0 --port 8000 --app-dir target_app
+    ports: ["127.0.0.1:8000:8000"]
+    environment:
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434/api/chat}
+      HARDENED: ${HARDENED:-}
+      REQUIRE_APPROVAL: ${REQUIRE_APPROVAL:-}
+      SECURE_PROMPT: ${SECURE_PROMPT:-}
+    extra_hosts: ["host.docker.internal:host-gateway"]   # reach Ollama on your computer (also on Linux)
+
+  firewall:
+    <<: *common
+    command: python -m uvicorn firewall:app --host 0.0.0.0 --port 8001 --app-dir firewall
+    ports: ["127.0.0.1:8001:8001"]
+    environment:
+      BACKEND_URL: http://agent:8000/chat
+      AUTOBLOCK: ${AUTOBLOCK:-}
+    depends_on: [agent]
+
+  dashboard:
+    <<: *common
+    command: python -m uvicorn dashboard:app --host 0.0.0.0 --port 8002 --app-dir dashboard
+    ports: ["127.0.0.1:8002:8002"]
+    environment:
+      AGENT_URL: http://agent:8000/chat
+      FIREWALL_URL: http://firewall:8001/chat
+    depends_on: [agent, firewall]

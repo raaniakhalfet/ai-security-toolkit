@@ -195,6 +195,24 @@ Two ways to **respond** to an attack, not only to detect it (NIST: Respond):
 
 Both write a critical alert (layer `response`, Wazuh rule 100133). Four automatic tests cover them (kill switch, blocking after 5 attacks, normal users never blocked, off by default).
 
+
+## Docker (one command)
+
+```
+docker compose up --build
+```
+
+Starts the agent (8000), the firewall (8001) and the Control Center (8002), each in its own container. Open http://127.0.0.1:8002. Stop with `Ctrl+C`, then `docker compose down`.
+
+| What you want | Command |
+| --- | --- |
+| Real model (Ollama running on your computer, port 11434) | `docker compose up --build` |
+| No model installed: use the fake one | `docker compose -f docker-compose.yml -f docker-compose.mock.yml up --build` |
+| Guard on + automatic blocking | `docker compose -f docker-compose.yml -f docker-compose.hardened.yml up --build` |
+
+Safety choices: every port is published on `127.0.0.1` only (a test checks it), the fake model is not published at all, and the containers drop all Linux capabilities and cannot gain privileges. The project folder is mounted into the containers so the three programs share the same alerts, kill switch and approvals files. Check a running stack with `python tests/docker_smoke.py`. GitHub Actions runs the same smoke test with the fake model.
+Limit: the Docker files were written without a Docker engine in the build environment; the commands inside the containers were run and checked directly, and the smoke test runs in GitHub Actions.
+
 ## Alerts and SIEM
 
 Every blocked or redacted event is one JSON line in `firewall/alerts.jsonl`:

@@ -1,0 +1,10 @@
+# Guard ON + automatic source blocking ON.
+#   docker compose -f docker-compose.yml -f docker-compose.hardened.yml up --build
+# Add the mock model as well:  ... -f docker-compose.mock.yml
+services:
+  agent:
+    environment:
+      HARDENED: "1"
+  firewall:
+    environment:
+      AUTOBLOCK: "1"

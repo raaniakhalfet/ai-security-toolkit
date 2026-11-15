@@ -33,7 +33,7 @@ import killswitch  # noqa: E402  (emergency stop shared with the agent and the f
 
 REPORTS = ROOT / "reports"
 ALERTS = ROOT / "firewall" / "alerts.jsonl"
-BLOCKED = ROOT / "firewall" / "blocked.json"
+BLOCKED = Path(os.environ.get("BLOCKED_FILE") or ROOT / "firewall" / "blocked.json")
 AGENT_URL = os.environ.get("AGENT_URL", "http://127.0.0.1:8000/chat")
 FIREWALL_URL = os.environ.get("FIREWALL_URL", "http://127.0.0.1:8001/chat")
 

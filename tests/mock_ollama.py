@@ -7,6 +7,7 @@ It is NOT a measurement of real model behaviour. Real numbers come from the real
 
   python tests/mock_ollama.py
 """
+import os
 import re
 
 import uvicorn
@@ -44,4 +45,5 @@ async def chat(req: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=11435, log_level="warning")
+    # Inside Docker the fake model must listen on the container network; it is never published to your computer.
+    uvicorn.run(app, host=os.environ.get("MOCK_HOST", "127.0.0.1"), port=11435, log_level="warning")

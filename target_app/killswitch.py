@@ -5,10 +5,12 @@ Switch it from the Control Center (red button), or with:  python toolkit.py kill
 LOCAL LAB ONLY.
 """
 import json
+import os
 import time
 from pathlib import Path
 
-STATE = Path(__file__).parent / "killswitch.json"
+# KILLSWITCH_FILE lets the automatic tests use their own file, so they never touch your real emergency-stop state.
+STATE = Path(os.environ.get("KILLSWITCH_FILE") or Path(__file__).parent / "killswitch.json")
 
 
 def status():
