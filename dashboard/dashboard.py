@@ -571,6 +571,13 @@ function analyze(p,r){
  const steps=[];let out={harm:false,stopped:false,ok:r.ok};
  if(!r.ok){return {steps:[['msg','pass','']],v:['v-wait','Not reachable',r.error||'Start the servers first.'],harm:false,stopped:false,ok:false}}
  const reply=r.response||'',tr=r.tool_trace||[],fw=r.firewall||{};
+ if(r.killswitch||fw.action==='killswitch'){
+  const names=p==='a'?[['msg','stop',''],['model','skip',''],['tools','skip',''],['reply','skip','']]:[['msg','stop',''],['inp','skip',''],['model','skip',''],['guard','skip',''],['out','skip',''],['reply','skip','']];
+  return {steps:names,v:['v-wait','Switched off','Emergency stop is ON: this side refuses every request.'],harm:false,stopped:true,ok:false,normal:false};
+ }
+ if(fw.action==='source_blocked'){
+  return {steps:[['msg','stop',''],['inp','skip',''],['model','skip',''],['guard','skip',''],['out','skip',''],['reply','skip','']],v:['v-safe','Source blocked','Too many attacks from this source, so it is cut off for a few minutes.'],harm:false,stopped:true,ok:true,normal:false};
+ }
  const leak=SECRET.test(reply),mail=emailSent(tr),den=denied(tr),pend=pending(tr);
  const names=[...new Set(tr.map(t=>t.tool))].join(', ');
  const harm=leak||mail;
