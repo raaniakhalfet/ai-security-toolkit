@@ -4,3 +4,5 @@ target_app/outbox.log
 target_app/approvals.json
 logs/
 reports/challenge_log*.jsonl
+target_app/killswitch.json
+firewall/blocked.json

@@ -3,6 +3,8 @@
   python toolkit.py up                     start agent + firewall + Control Center (one terminal, Ctrl+C stops all)
   python toolkit.py up --hardened          same, with the guard on
   python toolkit.py up --approval          guard + a human must approve every email (Approvals tab)
+  python toolkit.py up --autoblock         firewall cuts off a source after 5 attacks in 60 seconds (5 minutes)
+  python toolkit.py kill on|off|status     emergency stop: switch the agent and the firewall off / on
   python toolkit.py scan --runs 5          attack the running agent (see --help for options)
   python toolkit.py audit                  permission audit
   python toolkit.py report                 rebuild all HTML reports from saved scans
@@ -66,7 +68,7 @@ def need_free(*ports):
 def spawn(name, cwd, module, port, env_extra=None):
     LOGS.mkdir(exist_ok=True)
     log = open(LOGS / f"{name}.log", "w", encoding="utf-8")
-    env = {k: v for k, v in os.environ.items() if k not in ("HARDENED", "SECURE_PROMPT", "REQUIRE_APPROVAL")}
+    env = {k: v for k, v in os.environ.items() if k not in ("HARDENED", "SECURE_PROMPT", "REQUIRE_APPROVAL", "AUTOBLOCK")}
     env.update(env_extra or {})
     proc = subprocess.Popen([PY, "-m", "uvicorn", module, "--host", "127.0.0.1", "--port", str(port)],
                             cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -94,9 +96,12 @@ def cmd_up(a):
         env["REQUIRE_APPROVAL"] = "1"
     if a.secure_prompt:
         env["SECURE_PROMPT"] = "1"
+    if a.autoblock:
+        print("Automatic blocking is ON: 5 attack events in 60 seconds from one source = blocked for 5 minutes.")
     mode = ", ".join(f"{k}={v}" for k, v in env.items()) or "vulnerable (no guard)"
+    fw_env = {"AUTOBLOCK": "1"} if a.autoblock else {}
     procs = [spawn("agent", ROOT / "target_app", "app:app", 8000, env),
-             spawn("firewall", ROOT / "firewall", "firewall:app", 8001),
+             spawn("firewall", ROOT / "firewall", "firewall:app", 8001, fw_env),
              spawn("dashboard", ROOT / "dashboard", "dashboard:app", 8002)]
     print(f"Agent mode: {mode}\n"
           "  agent          http://127.0.0.1:8000/docs\n"
@@ -111,6 +116,18 @@ def cmd_up(a):
         print("\nStopping...")
     finally:
         stop(procs)
+
+
+def cmd_kill(a):
+    sys.path.insert(0, str(ROOT / "target_app"))
+    import killswitch
+    if a.state == "status":
+        s = killswitch.status()
+        print("Emergency stop is", "ON since " + s["since"] if s["active"] else "off")
+        return
+    killswitch.set_active(a.state == "on", "set from the command line")
+    print("Emergency stop is now", a.state.upper(), "- the agent and the firewall",
+          "refuse every request." if a.state == "on" else "work normally again.")
 
 
 def run(args, cwd):
@@ -184,6 +201,7 @@ def main():
     p = sub.add_parser("up", help="start agent, firewall and Control Center")
     p.add_argument("--hardened", action="store_true", help="turn the guard on")
     p.add_argument("--approval", action="store_true", help="guard + human approval for emails")
+    p.add_argument("--autoblock", action="store_true", help="firewall blocks a source after 5 attacks in 60 s")
     p.add_argument("--secure-prompt", action="store_true", help="remove the secret from the system prompt")
     p.set_defaults(fn=cmd_up)
 
@@ -194,6 +212,10 @@ def main():
     p.add_argument("--library", default=None, help="attacks_holdout.yaml or attacks_holdout2.yaml")
     p.add_argument("--only", default=None, help="only one category, e.g. jailbreak")
     p.set_defaults(fn=cmd_scan)
+
+    p = sub.add_parser("kill", help="emergency stop: on, off or status")
+    p.add_argument("state", choices=["on", "off", "status"])
+    p.set_defaults(fn=cmd_kill)
 
     sub.add_parser("audit", help="permission audit").set_defaults(fn=cmd_audit)
     sub.add_parser("report", help="rebuild HTML reports from saved scans").set_defaults(fn=cmd_report)

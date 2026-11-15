@@ -185,6 +185,16 @@ Fake secrets (`CANARY-xxxxxxxx`) are planted in `secrets.txt`, `customers.txt` a
 * a canary token is about to reach the user in a reply (the firewall also redacts it),
 * a canary token is put in an outgoing email.
 
+
+## Automatic response: emergency stop and source blocking
+
+Two ways to **respond** to an attack, not only to detect it (NIST: Respond):
+
+* **Emergency stop (kill switch).** The red button "Emergency stop" in the Control Center, or `python toolkit.py kill on` (`off`, `status`). When it is ON, the agent and the firewall refuse every request (HTTP 503) until it is switched OFF. The state is one small file shared by all three programs (`target_app/killswitch.json`).
+* **Automatic source blocking.** Start with `python toolkit.py up --autoblock`. A source that causes **5 attack events within 60 seconds** is cut off for 5 minutes (HTTP 429), even for normal questions. Other sources are not affected. The Live alerts tab lists blocked sources with an **Unblock** button. In the lab every caller is `127.0.0.1`, so a caller can name itself with the `X-Source-Id` header. It is off by default, because the scanner sends hundreds of attacks from one address.
+
+Both write a critical alert (layer `response`, Wazuh rule 100133). Four automatic tests cover them (kill switch, blocking after 5 attacks, normal users never blocked, off by default).
+
 ## Alerts and SIEM
 
 Every blocked or redacted event is one JSON line in `firewall/alerts.jsonl`:

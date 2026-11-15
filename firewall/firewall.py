@@ -12,10 +12,12 @@ import json
 import os
 import re
 import time
+from collections import defaultdict, deque
 from pathlib import Path
 
 import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000/chat")
@@ -63,6 +65,10 @@ try:
     import canary  # canary tokens (traps): shared list in target_app/canaries.yaml
 except Exception:
     canary = None
+try:
+    import killswitch  # emergency stop, shared file in target_app/
+except Exception:
+    killswitch = None
 EMAIL_INTENT = re.compile(r"\b(send|email|e-mail|mail|forward|write to)\b", re.I)
 EMAIL_ADDR = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
 
@@ -128,12 +134,71 @@ class Chat(BaseModel):
     message: str
 
 
+# ---------------------------------------------------------------- automatic source blocking
+# Start the firewall with AUTOBLOCK=1 (python toolkit.py up --autoblock). Off by default, because the scanner
+# sends hundreds of attacks from one address and would be blocked in seconds.
+AUTOBLOCK = os.environ.get("AUTOBLOCK") == "1"
+BLOCK_AFTER = int(os.environ.get("BLOCK_AFTER", "5"))          # attack events ...
+BLOCK_WINDOW = int(os.environ.get("BLOCK_WINDOW", "60"))       # ... inside this many seconds
+BLOCK_SECONDS = int(os.environ.get("BLOCK_SECONDS", "300"))    # block lasts this long (or until unblocked)
+BLOCKED_FILE = Path(__file__).parent / "blocked.json"
+_recent = defaultdict(deque)
+
+
+def source_of(request, header_value=None):
+    """Who is calling. In the lab everything is 127.0.0.1, so a caller may name itself with the X-Source-Id header."""
+    return (header_value or (request.client.host if request.client else "unknown"))[:60]
+
+
+def read_blocked():
+    try:
+        data = json.loads(BLOCKED_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    now = time.time()
+    return {k: v for k, v in data.items() if v.get("until", 0) > now}
+
+
+def write_blocked(data):
+    BLOCKED_FILE.write_text(json.dumps(data), encoding="utf-8")
+
+
+def note_attack(source):
+    """Count one attack event for a source; block it when it reaches BLOCK_AFTER within BLOCK_WINDOW seconds."""
+    if not AUTOBLOCK:
+        return False
+    now = time.time()
+    q = _recent[source]
+    q.append(now)
+    while q and now - q[0] > BLOCK_WINDOW:
+        q.popleft()
+    if len(q) >= BLOCK_AFTER:
+        data = read_blocked()
+        data[source] = {"since": time.strftime("%Y-%m-%dT%H:%M:%S"), "until": now + BLOCK_SECONDS, "events": len(q)}
+        write_blocked(data)
+        q.clear()
+        log_alert("response", "auto_block", "blocked_source",
+                  f"source {source} blocked for {BLOCK_SECONDS} s after {BLOCK_AFTER} attack events in {BLOCK_WINDOW} s")
+        return True
+    return False
+
+
 @app.post("/chat")
-def chat(body: Chat):
+def chat(body: Chat, request: Request):
+    # Emergency stop: nothing goes through
+    if killswitch and killswitch.is_active():
+        return JSONResponse({"response": "Emergency stop is ON. Everything is switched off.", "tool_trace": [],
+                             "firewall": {"action": "killswitch"}}, status_code=503)
+    # Source already blocked after too many attacks?
+    source = source_of(request, request.headers.get("x-source-id"))
+    if AUTOBLOCK and source in read_blocked():
+        return JSONResponse({"response": "Too many suspicious requests. This source is blocked for now.", "tool_trace": [],
+                             "firewall": {"action": "source_blocked", "source": source}}, status_code=429)
     # Layer 1: input filter
     rule = check_input(body.message)
     if rule:
         log_alert("input", rule, "blocked", body.message)
+        note_attack(source)
         return {"response": BLOCK_MESSAGE, "tool_trace": [], "firewall": {"action": "blocked", "rule": rule}}
 
     # Forward to the real agent
@@ -146,6 +211,7 @@ def chat(body: Chat):
     # Layer 2: tool-call audit (alerts; the tool has already run)
     for rule, detail in audit_trace(data.get("tool_trace")):
         log_alert("tool", rule, "alert", detail)
+        note_attack(source)
 
     # Layer 3: output filter
     raw_reply = str(data.get("response", ""))
@@ -156,6 +222,7 @@ def chat(body: Chat):
             log_alert("canary", "canary_token_in_reply", "alert", f"{token} (planted in {source}) was about to reach the user")
     if hits:
         action = "redacted"
+        note_attack(source)
         for h in hits:
             if h != "canary":
                 log_alert("output", h, "redacted", data.get("response", ""))
@@ -167,4 +234,4 @@ def chat(body: Chat):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "backend": BACKEND_URL}
+    return {"status": "ok", "backend": BACKEND_URL, "autoblock": AUTOBLOCK}

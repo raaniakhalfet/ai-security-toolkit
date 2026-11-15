@@ -29,9 +29,11 @@ sys.path.insert(0, str(ROOT / "target_app"))
 sys.path.insert(0, str(ROOT / "scanner"))
 import frameworks  # noqa: E402  (OWASP and MITRE ATLAS labels)
 import approvals  # noqa: E402  (human approval queue shared with the agent guard)
+import killswitch  # noqa: E402  (emergency stop shared with the agent and the firewall)
 
 REPORTS = ROOT / "reports"
 ALERTS = ROOT / "firewall" / "alerts.jsonl"
+BLOCKED = ROOT / "firewall" / "blocked.json"
 AGENT_URL = os.environ.get("AGENT_URL", "http://127.0.0.1:8000/chat")
 FIREWALL_URL = os.environ.get("FIREWALL_URL", "http://127.0.0.1:8001/chat")
 
@@ -49,6 +51,8 @@ app = FastAPI(title="AI Security Toolkit Control Center")
 # ------------------------------------------------------------------ alerts
 def severity(ev):
     layer, rule, action = ev["layer"], ev["rule"], ev["action"]
+    if layer == "response":
+        return "critical", "Source blocked automatically after repeated attacks"
     if layer == "canary":
         return "critical", "Canary triggered: a trap was touched"
     if layer == "tool":
@@ -290,6 +294,56 @@ def api_decide(rid: int, decision: str):
     return {"ok": bool(item), "item": item}
 
 
+# ------------------------------------------------------------------ emergency stop and blocked sources
+class Switch(BaseModel):
+    active: bool
+    reason: str = ""
+
+
+def log_response(rule, action, detail):
+    with ALERTS.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"ts": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), "layer": "response", "rule": rule,
+                            "action": action, "detail": detail[:200]}) + "\n")
+
+
+@app.get("/api/killswitch")
+def api_killswitch():
+    return killswitch.status()
+
+
+@app.post("/api/killswitch")
+def api_killswitch_set(b: Switch):
+    data = killswitch.set_active(b.active, b.reason or "set from the Control Center")
+    log_response("kill_switch", "on" if b.active else "off", "Emergency stop switched " + ("ON" if b.active else "OFF") + " from the Control Center")
+    return data
+
+
+def read_blocked():
+    try:
+        data = json.loads(BLOCKED.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    now = datetime.now().timestamp()
+    return {k: v for k, v in data.items() if v.get("until", 0) > now}
+
+
+@app.get("/api/blocked")
+def api_blocked():
+    now = datetime.now().timestamp()
+    return {"sources": [{"source": k, "since": v.get("since", ""), "seconds_left": int(v["until"] - now), "events": v.get("events", 0)}
+                        for k, v in read_blocked().items()]}
+
+
+@app.post("/api/unblock")
+def api_unblock(source: str):
+    data = read_blocked()
+    if source in data:
+        del data[source]
+        BLOCKED.write_text(json.dumps(data), encoding="utf-8")
+        log_response("unblock", "unblocked", "Source " + source + " unblocked from the Control Center")
+    return {"ok": True}
+
+
 @app.get("/api/status")
 def api_status():
     def up(url):
@@ -404,6 +458,9 @@ svg.tl{width:100%;height:100px}
 button.alt.on{background:var(--safe);color:var(--onfill)}
 .canary{display:none;max-width:1184px;margin:14px auto 0;background:var(--hot);color:var(--onfill);padding:12px 18px;border-radius:12px;font-weight:700;animation:flash 1.4s infinite}
 .canary.on{display:block}
+.stopbar{display:none;max-width:1184px;margin:14px auto 0;background:#5b0f0f;border:2px solid var(--hot);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700}.stopbar.on{display:block}
+button.kill{border:2px solid var(--hot);background:transparent;color:var(--hot);border-radius:10px;padding:8px 16px;cursor:pointer;font:inherit;font-weight:700;margin-left:8px}
+button.kill.on{background:var(--hot);color:#fff}
 .tag{display:inline-block;margin-top:4px;font-size:12px;color:var(--safe);border:1px solid var(--line);border-radius:6px;padding:0 6px}
 .legend{color:var(--mute);font-size:13px;margin-top:6px}
 details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600}
@@ -414,8 +471,9 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600
  <div class="brand"><h1>AI Security Control Center</h1><p id="headline">Attack, protect and watch an AI agent. Local lab, fake data only.</p></div>
  <div class="lights"><span class="chip" id="stAgent"><i></i>Agent :8000</span><span class="chip" id="stFw"><i></i>Firewall :8001</span></div>
 </header>
+<div id="stopBar" class="stopbar">EMERGENCY STOP IS ON. The agent and the firewall refuse every request. Press the button again to switch back on.</div>
 <div id="canaryBar" class="canary"></div>
-<nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="approvals">Approvals<span class="n" id="apN"></span></button><button data-t="results">Results</button><button data-t="audit">Audit</button><button id="repBtn" style="margin-left:auto">Create report (PDF)</button></nav>
+<nav id="nav"><button data-t="demo" class="on">Live attack demo</button><button data-t="alerts">Live alerts</button><button data-t="approvals">Approvals<span class="n" id="apN"></span></button><button data-t="results">Results</button><button data-t="audit">Audit</button><button id="repBtn" style="margin-left:auto">Create report (PDF)</button><button id="killBtn" class="kill">Emergency stop: off</button></nav>
 <main>
 
 <section class="tab on" id="demo">
@@ -452,6 +510,7 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--safe);font-weight:600
   <div class="card"><h2>Events per minute, last 30 minutes</h2><svg class="tl" id="tl" viewBox="0 0 300 90" preserveAspectRatio="none"></svg></div>
   <div class="card"><h2>Events by rule</h2><div id="byRule"></div></div>
  </div>
+ <div class="card"><h2>Sources blocked automatically</h2><p class="mute" style="margin:0 0 8px">When the firewall is started with <b>--autoblock</b>, a source that makes 5 attack events within 60 seconds is cut off for 5 minutes.</p><div id="blockedList"><span class="mute">No source is blocked.</span></div></div>
  <div class="card"><h2>Detection rule</h2><p class="mute" style="margin:0">5 or more attack events within 60 seconds raise an automated-attack alert, the same logic as Wazuh rule 100140.</p><div id="incList"></div></div>
  <div class="card"><h2>Latest events</h2><table><thead><tr><th>Time</th><th>Severity</th><th>Source</th><th>Rule</th><th>What happened</th></tr></thead><tbody id="evBody"></tbody></table></div>
 </section>
@@ -478,6 +537,18 @@ document.querySelectorAll('#nav button[data-t]').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));$(b.dataset.t).classList.add('on');
  if(b.dataset.t==='results')loadResults();if(b.dataset.t==='audit')loadAudit();if(b.dataset.t==='alerts')loadAlerts();if(b.dataset.t==='approvals')loadApprovals();});
 $('repBtn').onclick=()=>window.open('/report?lang=fr','_blank');
+// emergency stop and blocked sources
+let KILL=false;
+async function killPoll(){try{const d=await (await fetch('/api/killswitch')).json();KILL=!!d.active;
+ $('killBtn').textContent='Emergency stop: '+(KILL?'ON':'off');$('killBtn').classList.toggle('on',KILL);$('stopBar').classList.toggle('on',KILL)}catch(e){}}
+$('killBtn').onclick=async()=>{const turnOn=!KILL;
+ if(turnOn&&!confirm('Switch EVERYTHING off? The agent and the firewall will refuse all requests until you switch it back.'))return;
+ await fetch('/api/killswitch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({active:turnOn})});killPoll()};
+async function blockedPoll(){try{const d=await (await fetch('/api/blocked')).json();const box=$('blockedList');box.replaceChildren();
+ if(!d.sources.length){box.append(el('span','mute','No source is blocked.'));return}
+ d.sources.forEach(x=>{const r=el('div','row');r.append(el('span','',x.source+' blocked since '+x.since.replace('T',' ')+' ('+x.seconds_left+' s left)'));
+  const b=el('button','alt','Unblock');b.onclick=async()=>{await fetch('/api/unblock?source='+encodeURIComponent(x.source),{method:'POST'});blockedPoll()};r.append(b);box.append(r)})}catch(e){}}
+killPoll();setInterval(killPoll,3000);blockedPoll();setInterval(blockedPoll,4000);
 // status
 async function status(){try{const s=await (await fetch('/api/status')).json();
  $('stAgent').className='chip '+(s.agent?'up':'down');$('stFw').className='chip '+(s.firewall?'up':'down');}catch(e){}}

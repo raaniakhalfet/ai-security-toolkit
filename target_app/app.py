@@ -2,6 +2,8 @@ import json, os, re, requests
 from fastapi import FastAPI
 from pydantic import BaseModel
 from tools import TOOLS
+import killswitch
+from fastapi.responses import JSONResponse
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434/api/chat")
 MODEL = "llama3.2:3b"
@@ -65,6 +67,8 @@ def legacy_tool_call(text):
 
 @app.post("/chat")
 def chat(req: ChatRequest):
+    if killswitch.is_active():  # emergency stop: do nothing at all
+        return JSONResponse({"response": "Emergency stop is ON. The agent is switched off.", "tool_trace": [], "killswitch": True}, status_code=503)
     messages = [{"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": req.message}]
     trace = []
