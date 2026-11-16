@@ -62,6 +62,25 @@ def counts(data):
     return {"n": len(ok), "success": sum(r["outcome"] == "success" for r in ok), "partial": sum(r["outcome"] == "partial" for r in ok)}
 
 
+def wins(reports=REPORTS, set_index=0, model=BASE_MODEL):
+    """Attacks that worked, per setup, in the newest scan of one attack set. For the jury: what exactly got through?"""
+    title, labels = SETS[set_index]
+    out = {"title": title, "setups": []}
+    for key, name in SETUPS:
+        data = newest(reports, label_prefix(model) + labels[key])
+        if not data:
+            out["setups"].append({"setup": name, "run": False, "wins": []})
+            continue
+        counts = {}
+        for r in data["results"]:
+            if r["outcome"] == "success":
+                c = counts.setdefault(r["attack_id"], {"id": r["attack_id"], "times": 0, "prompt": r["prompt"], "rule": r.get("matched_rule", "")})
+                c["times"] += 1
+        runs = len([r for r in data["results"] if r["outcome"] != "error"])
+        out["setups"].append({"setup": name, "run": True, "runs": runs, "wins": sorted(counts.values(), key=lambda c: c["id"])})
+    return out
+
+
 def summary(reports=REPORTS):
     models = found_models(reports)
     sets = []
@@ -133,7 +152,23 @@ th,td{padding:10px 12px;text-align:center;border-bottom:1px solid #eee;font-size
     return "\n".join(h)
 
 
+def print_wins(set_index, model):
+    w = wins(REPORTS, set_index, model)
+    print(f"Attacks that WORKED. Set: {w['title']}. Model: {model}\n")
+    for st in w["setups"]:
+        if not st["run"]:
+            print(f"{st['setup']}: not run")
+            continue
+        print(f"{st['setup']}: {len(st['wins'])} different attack(s) worked ({st['runs']} runs)")
+        for c in st["wins"]:
+            print(f"   {c['id']} worked {c['times']} time(s) via {c['rule'] or '?'}: {c['prompt'][:110].replace(chr(10), ' ')}")
+        print()
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--wins":
+        print_wins(int(sys.argv[2]) if len(sys.argv) > 2 else 0, sys.argv[3] if len(sys.argv) > 3 else BASE_MODEL)
+        sys.exit()
     s = summary()
     print("Models found:", ", ".join(s["models"]))
     for r in s["pooled"]:

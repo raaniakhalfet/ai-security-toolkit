@@ -14,6 +14,7 @@
   python toolkit.py full --model qwen2.5:3b --runs 3    same scans on a second AI model (ollama pull it first)
   python toolkit.py invent                 an AI model invents new attacks (attacks_generated.yaml)
   python toolkit.py full --sets generated --configs none,firewall,both --runs 3     test the invented attacks
+  python toolkit.py wins                   which invented attacks actually worked, per setup (--set holdout2, --model qwen2.5:3b)
   python toolkit.py compare                the same defences on each model, side by side (reports/compare_models.html)
 
 LOCAL LAB ONLY. Servers bind to 127.0.0.1 and only fake data is used.
@@ -184,6 +185,11 @@ def cmd_invent(a):
     sys.exit(run(["invent.py", "--model", a.model, "--per-category", str(a.per_category)] + (["--only", a.only] if a.only else []), ROOT / "scanner"))
 
 
+def cmd_wins(a):
+    index = {"original": 0, "holdout": 1, "holdout2": 2, "generated": 3}[a.set]
+    sys.exit(run(["compare.py", "--wins", str(index), a.model], ROOT / "scanner"))
+
+
 def cmd_compare(a):
     sys.exit(run(["compare.py"], ROOT / "scanner"))
 
@@ -274,6 +280,11 @@ def main():
     p.add_argument("--per-category", type=int, default=4)
     p.add_argument("--only", default=None, help="only one category, e.g. jailbreak")
     p.set_defaults(fn=cmd_invent)
+
+    p = sub.add_parser("wins", help="which attacks actually worked, per setup (default: the invented set)")
+    p.add_argument("--set", default="generated", choices=["original", "holdout", "holdout2", "generated"])
+    p.add_argument("--model", default=BASE_MODEL, help="llama3.2:3b (default) or qwen2.5:3b")
+    p.set_defaults(fn=cmd_wins)
 
     sub.add_parser("compare", help="same defences on each AI model, side by side").set_defaults(fn=cmd_compare)
 
