@@ -44,6 +44,7 @@ SETS = [
     ("Original 12 attacks", {"none": "before", "firewall": "after", "guard": "guard", "both": "both", "rootfix": "rootfix"}),
     ("12 unseen attacks", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth", "rootfix": "holdoutrootfix"}),
     ("18 more unseen attacks", {"none": "holdout2before", "firewall": "holdout2after", "guard": "holdout2guard", "both": "holdout2both", "rootfix": "holdout2rootfix"}),
+    ("Attacks invented by an AI attacker", {"none": "generatedbefore", "firewall": "generatedafter", "guard": "generatedguard", "both": "generatedboth", "rootfix": "generatedrootfix"}),
 ]
 
 app = FastAPI(title="AI Security Toolkit Control Center")
@@ -153,6 +154,8 @@ def api_results():
     for title, labels in SETS:
         rows, cats = [], set()
         scans = {k: newest_scan(v) for k, v in labels.items()}
+        if not any(scans.values()):
+            continue                       # never run (for example the invented attacks): do not show an empty block
         for d in scans.values():
             if d:
                 cats |= {r["category"] for r in d["results"]}
@@ -704,7 +707,7 @@ async function loadApprovals(){let d;try{d=await (await fetch('/api/approvals'))
  d.history.filter(i=>i.status!=='pending').forEach(i=>{const tr=el('tr');tr.append(el('td','',i.id),el('td','',(i.decided_at||i.ts).replace('T',' ')));const s=el('td');s.append(badge(i.status,i.status==='approved'?'amb':'grn'));tr.append(s,el('td','',(i.args||{}).to||''));hb.append(tr)})}
 loadApprovals();setInterval(()=>{loadApprovals()},4000);
 // ---------- results
-const SUBS=['The firewall was built knowing these, so this proves little on its own.','Written without tuning the firewall on them.','Written after the firewall rules were fixed, never used to tune them.'];
+const SUBS=['The firewall was built knowing these, so this proves little on its own.','Written without tuning the firewall on them.','Written after the firewall rules were fixed, never used to tune them.','Invented by an AI model. We read them only after the test, so the firewall was not built around them.'];
 async function loadHeadline(){try{const d=await (await fetch('/api/results')).json();let a=[0,0],b=[0,0];
  d.forEach(set=>set.rows.forEach(r=>{if(!r.run)return;if(r.setup==='No defence'){a[0]+=r.success;a[1]+=r.n}if(r.setup==='Firewall + guard'){b[0]+=r.success;b[1]+=r.n}}));
  if(a[1]&&b[1]){$('headline').textContent='Across all scans, attacks that worked: '+pct(a[0],a[1])+'% without defence, '+pct(b[0],b[1])+'% with firewall and guard.';return {a,b,d}}}catch(e){}}
@@ -712,7 +715,7 @@ async function loadResults(){const h=await loadHeadline();const d=h?h.d:await (a
  if(h){const c=el('div','card hero');
   const l=el('div');l.append(el('div','num',pct(h.a[0],h.a[1])+'%'),el('div','lab','without defence ('+h.a[0]+' of '+h.a[1]+' runs)'));l.firstChild.style.color='var(--danger)';
   const r=el('div');r.append(el('div','num',pct(h.b[0],h.b[1])+'%'),el('div','lab','with firewall and guard ('+h.b[0]+' of '+h.b[1]+' runs, 95% interval '+ci(h.b[0],h.b[1])+')'));r.firstChild.style.color='var(--safe)';
-  c.append(l,el('div','arrow','→'),r,el('div','words','Share of attack runs that caused real harm: a secret shown, or an email sent. All three attack sets together.'));box.append(c)}
+  c.append(l,el('div','arrow','→'),r,el('div','words','Share of attack runs that caused real harm: a secret shown, or an email sent. All attack sets together.'));box.append(c)}
  d.forEach((set,si)=>{const c=el('div','card');c.append(el('h2','',set.title));c.append(el('div','mute',SUBS[si]||''));c.firstChild.style.marginBottom='2px';
   set.rows.forEach(r=>{const row=el('div','rrow'+(r.setup==='Firewall + guard'?' best':''));row.append(el('div','who',r.setup));
    if(!r.run){const x=el('div','mute','not run yet');x.style.gridColumn='span 2';row.append(x);c.append(row);return}

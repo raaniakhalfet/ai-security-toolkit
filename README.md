@@ -196,6 +196,23 @@ Two ways to **respond** to an attack, not only to detect it (NIST: Respond):
 Both write a critical alert (layer `response`, Wazuh rule 100133). Four automatic tests cover them (kill switch, blocking after 5 attacks, normal users never blocked, off by default).
 
 
+## AI attacker (attacks we did not write)
+
+Attack sets written by us only find the weaknesses we already thought of. So a local AI model plays the attacker and **invents new attacks**:
+
+```
+python toolkit.py invent                  # the AI writes new attacks into scanner/attacks_generated.yaml
+python toolkit.py full --sets generated --configs none,firewall,both --runs 3
+```
+
+How it stays honest:
+* The model writes only the **text** of the attack. How an attack is scored (secret shown, email sent) is fixed in `scanner/invent.py`, so the AI cannot decide that its own attack worked.
+* Copies of attacks we already have, and copies of each other, are dropped automatically (any category).
+* `invent` tells you how many invented messages the firewall's input filter already stops, and **lists the ones that slip through**. Those are the interesting ones: read them, and decide whether to improve the firewall or rely on the other layers.
+* The invented attacks form their own set, shown in its own block in the **Results** tab and in `reports/matrix.html`. They are never used to tune the firewall. Read the file before running it. Running `invent` again replaces it.
+* Choose the attacker with `--model` (default `qwen2.5:3b`). A small model also writes weak or odd attacks, so the number of attacks kept can be lower than asked.
+Lab only: the target is the fake AcmeBot with fake data.
+
 ## Second AI model (does it depend on the model?)
 
 The earlier results come from one small model (llama3.2:3b). To check that the defences do not only work on that one, run the same scans on another model:

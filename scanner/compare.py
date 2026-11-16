@@ -24,6 +24,7 @@ SETS = [
     ("Original 12 attacks", {"none": "before", "firewall": "after", "guard": "guard", "both": "both", "rootfix": "rootfix"}),
     ("12 unseen attacks", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth", "rootfix": "holdoutrootfix"}),
     ("18 more unseen attacks", {"none": "holdout2before", "firewall": "holdout2after", "guard": "holdout2guard", "both": "holdout2both", "rootfix": "holdout2rootfix"}),
+    ("Attacks invented by an AI attacker", {"none": "generatedbefore", "firewall": "generatedafter", "guard": "generatedguard", "both": "generatedboth", "rootfix": "generatedrootfix"}),
 ]
 
 
@@ -77,7 +78,8 @@ def summary(reports=REPORTS):
                         pooled[key][m][k] += c[k]
                     pooled[key][m]["sets"] += 1
             rows.append({"setup": name, "cells": cells})
-        sets.append({"title": title, "rows": rows})
+        if any(c for r in rows for c in r["cells"].values()):
+            sets.append({"title": title, "rows": rows})
     prows = [{"setup": name, "cells": {m: (pooled[key][m] if pooled[key][m]["sets"] else None) for m in models}} for key, name in SETUPS]
     return {"models": models, "sets": sets, "pooled": prows}
 

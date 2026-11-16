@@ -12,6 +12,8 @@
   python toolkit.py full --runs 5          run EVERY scan (5 setups x 3 attack sets), then build the reports
   python toolkit.py full --runs 3 --configs none,both --sets holdout2     only part of it
   python toolkit.py full --model qwen2.5:3b --runs 3    same scans on a second AI model (ollama pull it first)
+  python toolkit.py invent                 an AI model invents new attacks (attacks_generated.yaml)
+  python toolkit.py full --sets generated --configs none,firewall,both --runs 3     test the invented attacks
   python toolkit.py compare                the same defences on each model, side by side (reports/compare_models.html)
 
 LOCAL LAB ONLY. Servers bind to 127.0.0.1 and only fake data is used.
@@ -45,6 +47,7 @@ SETS = {
     "original": (None, ""),
     "holdout": ("attacks_holdout.yaml", "holdout"),
     "holdout2": ("attacks_holdout2.yaml", "holdout2"),
+    "generated": ("attacks_generated.yaml", "generated"),   # invented by an AI attacker: python toolkit.py invent
 }
 # the label word each setup uses in scan file names (matrix.py looks for these)
 LABEL = {"none": "before", "firewall": "after", "guard": "guard", "both": "both", "rootfix": "rootfix"}
@@ -176,6 +179,11 @@ def cmd_report(a):
     run(["compare.py"], scanner)
 
 
+def cmd_invent(a):
+    check_model(a.model)
+    sys.exit(run(["invent.py", "--model", a.model, "--per-category", str(a.per_category)] + (["--only", a.only] if a.only else []), ROOT / "scanner"))
+
+
 def cmd_compare(a):
     sys.exit(run(["compare.py"], ROOT / "scanner"))
 
@@ -195,6 +203,8 @@ def cmd_full(a):
     for s in sets:
         if s not in SETS:
             sys.exit(f"Unknown attack set {s}. Choose from: {', '.join(SETS)}")
+    if "generated" in sets and not (ROOT / "scanner" / "attacks_generated.yaml").exists():
+        sys.exit("No invented attacks yet. Create them first:  python toolkit.py invent")
     need_free(8000, 8001)
     model = a.model or BASE_MODEL
     if a.model and a.model != BASE_MODEL:
@@ -255,9 +265,15 @@ def main():
     p = sub.add_parser("full", help="run all scans for all setups, then the reports")
     p.add_argument("--runs", type=int, default=5)
     p.add_argument("--configs", default=",".join(CONFIGS))
-    p.add_argument("--sets", default=",".join(SETS))
+    p.add_argument("--sets", default="original,holdout,holdout2", help="attack sets, add generated to include the invented ones")
     p.add_argument("--model", default="", help="run everything on this AI model, e.g. qwen2.5:3b")
     p.set_defaults(fn=cmd_full)
+
+    p = sub.add_parser("invent", help="an AI attacker invents new attacks (then: full --sets generated)")
+    p.add_argument("--model", default="qwen2.5:3b", help="the AI attacker, an Ollama model")
+    p.add_argument("--per-category", type=int, default=4)
+    p.add_argument("--only", default=None, help="only one category, e.g. jailbreak")
+    p.set_defaults(fn=cmd_invent)
 
     sub.add_parser("compare", help="same defences on each AI model, side by side").set_defaults(fn=cmd_compare)
 

@@ -21,6 +21,7 @@ SETS = [
     ("Original 12 attacks (the firewall was built knowing these)", {"none": "before", "firewall": "after", "guard": "guard", "both": "both", "rootfix": "rootfix"}),
     ("12 unseen attacks (hold-out set 1)", {"none": "holdoutbefore", "firewall": "holdoutafter", "guard": "holdoutguard", "both": "holdoutboth", "rootfix": "holdoutrootfix"}),
     ("18 more unseen attacks (hold-out set 2: base64, Arabic, fiction, look-alike domains, new poisoned files)", {"none": "holdout2before", "firewall": "holdout2after", "guard": "holdout2guard", "both": "holdout2both", "rootfix": "holdout2rootfix"}),
+    ("Attacks invented by an AI attacker (read by us only after the test)", {"none": "generatedbefore", "firewall": "generatedafter", "guard": "generatedguard", "both": "generatedboth", "rootfix": "generatedrootfix"}),
 ]
 
 
@@ -65,6 +66,8 @@ td:first-child,th:first-child{text-align:left}.s{font-size:12px;color:#555}
          f"<div class='sub'>Attack success rate = share of attack runs that caused real harm. Lower is better. Generated {datetime.now():%Y-%m-%d %H:%M}</div>"]
     for title, labels in SETS:
         data = {k: newest(v) for k, v in labels.items()}
+        if not any(data.values()):
+            continue                       # a set that was never run (for example the invented attacks) is left out
         h.append(f"<h2>{html.escape(title)}</h2>")
         h.append("<table><tr><th>Setup</th><th>Attack success</th><th>Success or partial</th></tr>")
         for key, name in SETUPS:
