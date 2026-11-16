@@ -1,5 +1,5 @@
 import json, os, re, requests
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from tools import TOOLS
 import killswitch
@@ -51,9 +51,15 @@ class ChatRequest(BaseModel):
     message: str
 
 def call_llm(messages):
-    r = requests.post(OLLAMA_URL, json={"model": MODEL, "messages": messages,
-                                        "tools": TOOL_SCHEMAS, "stream": False}, timeout=180)
-    return r.json()["message"]
+    try:
+        r = requests.post(OLLAMA_URL, json={"model": MODEL, "messages": messages,
+                                            "tools": TOOL_SCHEMAS, "stream": False}, timeout=180)
+        data = r.json()
+    except (requests.RequestException, ValueError) as e:
+        raise HTTPException(502, f"The AI model does not answer ({type(e).__name__}). Is Ollama running? Try: ollama list")
+    if "message" not in data:   # Ollama sent an error, for example a missing model or not enough memory
+        raise HTTPException(502, f"The AI model {MODEL} answered with an error: {str(data.get('error', data))[:200]}")
+    return data["message"]
 
 def legacy_tool_call(text):
     # Fallback: the model typed a JSON tool call as plain text

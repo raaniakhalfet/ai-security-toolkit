@@ -64,6 +64,7 @@ def stack():
     procs.append(start(app_dir, "app:app", 18002, HARDENED=1, REQUIRE_APPROVAL=1))              # guard + approval
     procs.append(start(app_dir, "app:app", 18003, HARDENED=1, SECURE_PROMPT=1))                 # secret removed
     procs.append(start(app_dir, "app:app", 18004, MODEL="test-model-2"))                         # a second AI model
+    procs.append(start(app_dir, "app:app", 18005, OLLAMA_URL="http://127.0.0.1:9/api/chat"))     # AI model that is off
     procs.append(start(ROOT / "firewall", "firewall:app", 18010, BACKEND_URL="http://127.0.0.1:18000/chat"))
     procs.append(start(ROOT / "firewall", "firewall:app", 18011, BACKEND_URL="http://127.0.0.1:18000/chat", AUTOBLOCK=1))
     yield
@@ -322,3 +323,8 @@ def test_model_comparison_summary():
     assert s["pooled"][3]["cells"]["qwen2.5:3b"] is None                                   # not run on the second model
     page = compare.build(d)
     assert "qwen2.5:3b" in page and "not run" in page
+
+
+def test_model_down_gives_a_clear_error(stack):
+    r = post(18005, "What are your support hours?")
+    assert r.status_code == 502 and "Ollama" in r.json()["detail"]

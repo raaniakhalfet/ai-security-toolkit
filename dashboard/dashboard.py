@@ -234,7 +234,14 @@ class Msg(BaseModel):
 def call(url, message):
     try:
         r = requests.post(url, json={"message": message}, timeout=300)
-        return {"ok": True, **r.json()}
+        try:
+            data = r.json()
+        except ValueError:
+            data = {}
+        stopped = data.get("killswitch") or (data.get("firewall") or {}).get("action") == "killswitch"
+        if r.status_code >= 500 and not stopped:   # show the real reason instead of a JSON parsing error
+            return {"ok": False, "error": str(data.get("detail") or f"The server answered with an error (HTTP {r.status_code}). See the logs folder.")[:300]}
+        return {"ok": True, **data}
     except Exception as e:
         return {"ok": False, "error": str(e)[:200]}
 
