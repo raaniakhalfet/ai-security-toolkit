@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # On GitHub the checkout belongs to another user than the containers, which have no extra Linux powers
+      # (cap_drop ALL): let them write the shared files (alerts, kill switch...).
+      - run: chmod -R a+rwX .
       - run: docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d --build
       - uses: actions/setup-python@v5
         with:
@@ -22,6 +25,6 @@ jobs:
       - run: pip install requests
       - run: python tests/docker_smoke.py
       - if: failure()
-        run: docker compose logs
+        run: docker compose -f docker-compose.yml -f docker-compose.mock.yml logs
       - if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.mock.yml down
